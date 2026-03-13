@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#0F172A"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="JobQuest"/>
+<title>JobQuest — Job Tracker</title>
+<link rel="manifest" id="pwa-manifest"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Segoe UI',sans-serif;overflow-x:hidden}
+:root{--nav-h:64px;--safe-b:env(safe-area-inset-bottom,0px)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:#1E293B}
+::-webkit-scrollbar-thumb{background:#334155;border-radius:4px}
+
+/* AUTH */
+#auth-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:radial-gradient(ellipse at top,#1E293B,#0F172A)}
+.auth-card{background:#1E293B;border:1px solid #334155;border-radius:24px;padding:32px 28px;width:100%;max-width:400px;box-shadow:0 24px 80px rgba(0,0,0,0.5)}
+.auth-logo{width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,#38BDF8,#0EA5E9);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 18px;box-shadow:0 8px 24px rgba(14,165,233,0.35)}
+.auth-title{font-size:22px;font-weight:800;color:#F1F5F9;text-align:center;letter-spacing:-0.4px}
+.auth-sub{font-size:12px;color:#64748B;text-align:center;margin:5px 0 22px}
+.auth-tabs{display:flex;background:#0F172A;border-radius:11px;padding:3px;margin-bottom:20px}
+.auth-tab{flex:1;padding:8px;border:none;border-radius:8px;background:transparent;color:#64748B;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s}
+.auth-tab.active{background:#1E293B;color:#F1F5F9;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px}
+.fg input{width:100%;padding:11px 13px;border-radius:11px;border:1px solid #334155;background:#0F172A;color:#E2E8F0;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.2s}
+.fg input:focus{border-color:#38BDF8}
+.auth-btn{width:100%;padding:12px;border-radius:11px;border:none;background:linear-gradient(135deg,#38BDF8,#0EA5E9);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(14,165,233,0.3)}
+.auth-btn:disabled{opacity:0.5;cursor:not-allowed}
+.auth-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:#334155;font-size:12px}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:#334155}
+.google-btn{width:100%;padding:11px;border-radius:11px;border:1px solid #334155;background:#1E293B;color:#E2E8F0;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:9px}
+.auth-err{background:#450A0A;border:1px solid #7F1D1D;border-radius:9px;padding:9px 13px;color:#FCA5A5;font-size:12px;margin-bottom:12px;display:none}
+.auth-err.show{display:block}
+
+/* APP */
+#app-screen{display:none;flex-direction:column;min-height:100vh}
+#app-screen.on{display:flex}
+
+/* HEADER */
+.hdr{background:#1E293B;border-bottom:1px solid #334155;padding:0 18px;display:flex;align-items:center;justify-content:space-between;height:var(--nav-h);position:sticky;top:0;z-index:100;flex-shrink:0}
+.hdr-logo{display:flex;align-items:center;gap:10px}
+.hdr-icon{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,#38BDF8,#0EA5E9);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 12px rgba(14,165,233,0.3);flex-shrink:0}
+.hdr-title{font-size:17px;font-weight:800;color:#F1F5F9;letter-spacing:-0.3px}
+.hdr-sub{font-size:10px;color:#475569;font-weight:500}
+.hdr-right{display:flex;gap:7px;align-items:center}
+.btn{padding:7px 13px;border-radius:9px;border:1px solid #334155;background:transparent;color:#94A3B8;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;transition:all 0.15s;white-space:nowrap}
+.btn:hover{background:#243044;color:#E2E8F0}
+.btn-p{background:linear-gradient(135deg,#38BDF8,#0EA5E9);border:none;color:#fff;box-shadow:0 3px 10px rgba(14,165,233,0.3)}
+.btn-g{background:linear-gradient(135deg,#166534,#14532D);border-color:#166534;color:#4ADE80}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#6366F1,#8B5CF6);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;cursor:pointer;border:2px solid #334155;flex-shrink:0}
+@media(max-width:480px){.hide-xs{display:none}}
+
+/* MAIN */
+.main{flex:1;padding:14px 18px;overflow-y:auto}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+@media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:#1E293B;border:1px solid #334155;border-radius:13px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.stat-ico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.stat-v{font-size:22px;font-weight:800;line-height:1}
+.stat-l{font-size:10px;color:#64748B;font-weight:500;margin-top:2px}
+
+/* FILTERS */
+.fbar{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.srch{position:relative;flex:1;min-width:160px}
+.srch input{width:100%;padding:8px 12px 8px 34px;border-radius:10px;border:1px solid #334155;background:#1E293B;color:#E2E8F0;font-size:12px;font-family:inherit;outline:none}
+.srch-ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#475569;font-size:14px;pointer-events:none}
+.chip{padding:6px 12px;border-radius:20px;border:1px solid #334155;background:transparent;color:#64748B;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all 0.15s;display:flex;align-items:center;gap:4px}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0}
+
+/* CARDS (mobile) */
+.cards{display:none;grid-template-columns:1fr;gap:10px}
+@media(max-width:768px){.cards{display:grid}.tbl-wrap{display:none!important}}
+.jcard{background:#1E293B;border:1px solid #334155;border-radius:16px;overflow:hidden;transition:transform 0.15s}
+.jcard:active{transform:scale(0.98)}
+.jcard-bar{height:4px}
+.jcard-body{padding:14px}
+.jcard-co{font-size:15px;font-weight:800;color:#F1F5F9}
+.jcard-role{font-size:12px;color:#38BDF8;font-weight:600;margin-top:2px}
+.jcard-meta{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.jcard-pill{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:600}
+.jcard-acts{display:flex;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid #0F172A}
+.jcard-btn{flex:1;padding:8px;border-radius:9px;border:1px solid #334155;background:#0F172A;color:#94A3B8;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+.jcard-btn.red{border-color:#3F1515;background:#1C0A0A;color:#F87171}
+
+/* TABLE (desktop) */
+.tbl-wrap{overflow-x:auto;border-radius:16px;border:1px solid #334155;box-shadow:0 8px 32px rgba(0,0,0,0.3)}
+.dtbl{width:100%;border-collapse:collapse;min-width:1800px}
+.dtbl th{padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748B;background:#161F2E;border-right:1px solid #1E293B;border-bottom:2px solid #334155;white-space:nowrap;position:sticky;top:0;z-index:5;text-align:left}
+.dtbl th.b{color:#38BDF8}
+.dtbl td{padding:10px 12px;font-size:12px;color:#94A3B8;border-right:1px solid #1E293B;border-bottom:1px solid #192130;vertical-align:middle}
+.dtbl tr:hover td{background:#243044}
+.sbadge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap}
+
+/* BOTTOM NAV */
+.bnav{display:none;position:fixed;bottom:0;left:0;right:0;background:#1E293B;border-top:1px solid #334155;padding:6px 0 calc(6px + var(--safe-b));z-index:200}
+@media(max-width:768px){.bnav{display:flex}.main{padding-bottom:calc(76px + var(--safe-b))}}
+.nitem{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px;border:none;background:transparent;color:#475569;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:color 0.2s}
+.nitem.on{color:#38BDF8}
+.nico{font-size:19px;line-height:1}
+
+/* OVERLAY / MODAL */
+.ovl{position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:500;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(5px)}
+@media(min-width:600px){.ovl{align-items:center;padding:16px}}
+.modal{background:#1E293B;border-radius:22px 22px 0 0;width:100%;max-height:95vh;overflow-y:auto;border:1px solid #334155}
+@media(min-width:600px){.modal{border-radius:20px;max-width:840px;max-height:92vh}}
+.mhdr{background:linear-gradient(135deg,#0C1628,#1E293B);padding:16px 20px;border-bottom:1px solid #334155;position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;border-radius:22px 22px 0 0}
+@media(min-width:600px){.mhdr{border-radius:20px 20px 0 0}}
+.mtitle{font-size:15px;font-weight:800;color:#F1F5F9}
+.msub{font-size:11px;color:#475569;margin-top:2px}
+.mbody{padding:18px 20px;display:grid;gap:14px}
+.sbox{background:#0F172A;border-radius:13px;padding:14px 16px;border:1px solid #1E293B}
+.slbl{font-size:10px;font-weight:700;color:#38BDF8;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:500px){.g2,.g3{grid-template-columns:1fr}}
+.fld label{display:block;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px}
+.fld input,.fld select,.fld textarea{width:100%;padding:8px 12px;border-radius:9px;border:1px solid #334155;background:#1E293B;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;resize:vertical;transition:border-color 0.2s}
+.fld input:focus,.fld textarea:focus{border-color:#38BDF8}
+.fld select option{background:#1E293B}
+.cbox{background:#0C1A3F;border-radius:11px;padding:12px 14px;border:1px solid #1E40AF;margin-top:12px}
+.mfoot{display:flex;gap:8px;justify-content:flex-end;padding:0 20px 20px}
+.btn-cancel{padding:9px 20px;border-radius:10px;border:1px solid #334155;background:transparent;color:#94A3B8;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-save{padding:9px 24px;border-radius:10px;border:none;background:linear-gradient(135deg,#38BDF8,#0EA5E9);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+
+/* VIEW MODAL */
+.vmModal{background:#0F172A;border-radius:22px 22px 0 0;width:100%;max-height:96vh;overflow-y:auto;border:1px solid #334155}
+@media(min-width:600px){.vmModal{border-radius:20px;max-width:800px;max-height:94vh}}
+.vhdr{background:linear-gradient(135deg,#0C1628,#1A2744);padding:16px 20px;border-bottom:1px solid #334155;position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center}
+.hero{background:linear-gradient(135deg,#0F172A,#1E293B);border-radius:16px;overflow:hidden;border:1px solid #334155;margin-bottom:14px}
+.hbar{height:5px}
+.hbody{padding:18px 20px}
+.hco{font-size:19px;font-weight:800;color:#F1F5F9;letter-spacing:-0.3px}
+.hrole{font-size:13px;color:#38BDF8;font-weight:600;margin-top:2px}
+.pills{display:flex;gap:7px;margin-top:12px;flex-wrap:wrap}
+.ipill{display:flex;align-items:center;gap:5px;border-radius:9px;padding:4px 10px;border:1px solid transparent}
+.ipill .pl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;opacity:0.6}
+.ipill .pv{font-size:12px;font-weight:700}
+.hrgrid{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #1E293B}
+@media(max-width:450px){.hrgrid{grid-template-columns:1fr}}
+.hrcell{padding:12px 16px;border-right:1px solid #1E293B}
+.hrcell:last-child{border-right:none}
+.hrlbl{font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px}
+.hrval{font-size:12px;color:#7DD3FC;font-weight:600;word-break:break-all}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:500px){.two{grid-template-columns:1fr}}
+.ibox{background:#1E293B;border-radius:13px;padding:14px 16px;border:1px solid #334155}
+.iblbl{font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:7px}
+.ibtxt{font-size:13px;color:#94A3B8;line-height:1.75}
+.ivcard{background:linear-gradient(135deg,#0C1A3F,#0F2040);border-radius:14px;overflow:hidden;border:1px solid #1E40AF;margin-bottom:12px}
+.ivhdr{background:linear-gradient(90deg,#1D4ED8,#1E40AF);padding:11px 16px;display:flex;align-items:center;justify-content:space-between}
+.ivtiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:14px}
+@media(max-width:380px){.ivtiles{grid-template-columns:1fr}}
+.ivtile{background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center;border:1px solid rgba(96,165,250,0.2)}
+.iqlist{display:grid;gap:7px;padding:14px}
+.iqitem{display:flex;gap:9px;background:#2D1B4E;border-radius:9px;padding:9px 12px}
+
+/* PROFILE MENU */
+.pmenu{position:absolute;top:calc(var(--nav-h) + 4px);right:14px;background:#1E293B;border:1px solid #334155;border-radius:13px;padding:6px;z-index:300;box-shadow:0 16px 48px rgba(0,0,0,0.5);min-width:190px;display:none}
+.pmenu.on{display:block}
+.pemail{font-size:11px;color:#64748B;padding:7px 11px;border-bottom:1px solid #334155;margin-bottom:5px;word-break:break-all}
+.pitem{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#94A3B8;transition:background 0.15s}
+.pitem:hover{background:#0F172A}
+.pitem.red{color:#F87171}
+
+/* SYNC */
+.sdot{width:7px;height:7px;border-radius:50%;background:#4ADE80;display:inline-block}
+.sdot.syn{background:#F59E0B;animation:pulse 1s infinite}
+.sdot.off{background:#F87171}
+
+/* TOAST */
+.toast{position:fixed;top:74px;right:14px;z-index:9999;padding:11px 16px;border-radius:11px;color:#fff;font-size:13px;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,0.5);display:flex;gap:8px;align-items:center;transform:translateX(120%);transition:transform 0.3s ease;max-width:300px}
+.toast.on{transform:translateX(0)}
+@media(max-width:600px){.toast{top:auto;bottom:calc(80px + var(--safe-b));right:10px;left:10px;max-width:none}}
+
+/* LOADING */
+#loading{position:fixed;inset:0;background:#0F172A;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:14px}
+.spin{width:38px;height:38px;border:3px solid #334155;border-top-color:#38BDF8;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+
+/* EMPTY */
+.empty{text-align:center;padding:50px 16px;color:#334155}
+
+/* DEMO BANNER */
+.dbanner{background:#1D4ED8;color:#BFDBFE;font-size:12px;font-weight:600;text-align:center;padding:7px 14px}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div style="width:50px;height:50px;border-radius:15px;background:linear-gradient(135deg,#38BDF8,#0EA5E9);display:flex;align-items:center;justify-content:center;font-size:25px">💼</div>
+  <div class="spin"></div>
+  <div style="color:#475569;font-size:12px">Loading JobQuest...</div>
+</div>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">💼</div>
+    <div class="auth-title">JobQuest</div>
+    <div class="auth-sub">Track every opportunity. Land your dream job.</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchTab('signup')">Sign Up</button>
+    </div>
+    <div id="aerr" class="auth-err"></div>
+    <div id="lform">
+      <div class="fg"><label>Email</label><input type="email" id="lemail" placeholder="you@example.com" autocomplete="email"/></div>
+      <div class="fg"><label>Password</label><input type="password" id="lpass" placeholder="••••••••" autocomplete="current-password"/></div>
+      <button class="auth-btn" onclick="doLogin()">Sign In →</button>
+    </div>
+    <div id="sform" style="display:none">
+      <div class="fg"><label>Full Name</label><input type="text" id="sname" placeholder="Your Name" autocomplete="name"/></div>
+      <div class="fg"><label>Email</label><input type="email" id="semail" placeholder="you@example.com" autocomplete="email"/></div>
+      <div class="fg"><label>Password</label><input type="password" id="spass" placeholder="Min 6 characters" autocomplete="new-password"/></div>
+      <button class="auth-btn" onclick="doSignup()">Create Account →</button>
+    </div>
+    <div class="auth-divider">or</div>
+    <button class="google-btn" onclick="doGoogle()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Continue with Google
+    </button>
+  </div>
+  <div style="margin-top:16px;font-size:11px;color:#334155;text-align:center">🔒 Data synced securely via Firebase across all your devices</div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <header class="hdr">
+    <div class="hdr-logo">
+      <div class="hdr-icon">💼</div>
+      <div>
+        <div class="hdr-title">JobQuest</div>
+        <div class="hdr-sub" id="hdr-sub">Loading...</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <button class="btn btn-g" onclick="exportExcel()" id="btn-export" style="display:none"><span>📊</span><span class="hide-xs">Export</span></button>
+      <button class="btn btn-p" onclick="openAdd()" id="btn-add" style="display:none"><span style="font-size:15px">+</span><span class="hide-xs">Add Job</span></button>
+      <div class="avatar" id="avatar" onclick="togglePmenu()">?</div>
+    </div>
+  </header>
+
+  <div class="pmenu" id="pmenu">
+    <div class="pemail" id="pmenu-email">—</div>
+    <div class="pitem" onclick="exportExcel()">📊 Export to Excel</div>
+    <div class="pitem red" onclick="doLogout()">🚪 Sign Out</div>
+  </div>
+
+  <main class="main" id="main">
+    <div class="stats" id="stats"></div>
+    <div class="fbar">
+      <div class="srch"><span class="srch-ico">🔍</span><input type="search" id="srch" placeholder="Search company, role, HR..." oninput="renderAll()"/></div>
+      <div id="chips" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+    </div>
+    <div id="sync-bar" style="font-size:11px;color:#475569;margin-bottom:9px;display:flex;align-items:center;gap:5px">
+      <span class="sdot syn" id="sdot"></span><span id="stxt">Connecting...</span>
+    </div>
+    <div class="cards" id="cards"></div>
+    <div class="tbl-wrap" id="tbl-wrap">
+      <div style="background:#0F172A;display:grid;grid-template-columns:50px 160px 140px 170px 100px 130px 140px 150px 90px 110px 110px 105px 105px 155px 130px 185px;min-width:1800px;border-bottom:1px solid #1E293B">
+        <div></div><div style="grid-column:2/6"></div>
+        <div style="grid-column:6/10;padding:6px 0;font-size:10px;color:#38BDF8;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;text-align:center;border-left:1px solid #334155;border-right:1px solid #334155">── HR Details / Contact Person ──</div>
+        <div style="grid-column:10/17"></div>
+      </div>
+      <table class="dtbl" id="dtbl">
+        <thead><tr>
+          <th style="width:50px;text-align:center">No.</th>
+          <th style="width:160px">Company<br><span style="font-size:9px;opacity:0.5">(PayRoll)</span></th>
+          <th style="width:140px">Role</th>
+          <th style="width:170px">Job Description</th>
+          <th style="width:100px;text-align:center">Experience</th>
+          <th class="b" style="width:130px">HR Name</th>
+          <th class="b" style="width:140px">Contact No.</th>
+          <th class="b" style="width:150px">Mail ID</th>
+          <th style="width:90px;text-align:center">Client</th>
+          <th style="width:110px;text-align:center">Salary</th>
+          <th style="width:110px;text-align:center">Resume<br><span style="font-size:9px;opacity:0.5">(Edited)</span></th>
+          <th style="width:105px;text-align:center">Contacted</th>
+          <th style="width:105px;text-align:center">Follow-up</th>
+          <th style="width:155px">Status</th>
+          <th style="width:130px">Remarks</th>
+          <th style="width:185px">Interview Q's / Actions</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div id="empty" class="empty" style="display:none">
+      <div style="font-size:56px;margin-bottom:14px">🚀</div>
+      <div style="font-size:18px;font-weight:800;color:#E2E8F0;margin-bottom:8px">Start Your Job Hunt!</div>
+      <div style="font-size:13px;color:#64748B;margin-bottom:20px;line-height:1.6">Track every application, HR contact,<br>interview, and offer — all in one place.</div>
+      <button onclick="openAdd()" style="padding:12px 28px;border-radius:12px;border:none;background:linear-gradient(135deg,#38BDF8,#0EA5E9);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(14,165,233,0.35)">+ Add Your First Job</button>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:#334155;text-align:right" id="count"></div>
+  </main>
+
+  <nav class="bnav">
+    <button class="nitem on" onclick="navTo(this)"><span class="nico">🏠</span>Home</button>
+    <button class="nitem" onclick="openAdd();navTo(this)"><span class="nico">➕</span>Add Job</button>
+    <button class="nitem" onclick="exportExcel()"><span class="nico">📊</span>Export</button>
+    <button class="nitem" onclick="togglePmenu()"><span class="nico">👤</span>Profile</button>
+  </nav>
+</div>
+
+<!-- FORM MODAL -->
+<div class="ovl" id="form-ovl" style="display:none" onclick="if(event.target===this)closeForm()">
+  <div class="modal">
+    <div class="mhdr">
+      <div><div class="mtitle" id="form-title">➕ New Application</div><div class="msub">Fill in the details below</div></div>
+      <button onclick="closeForm()" style="background:none;border:none;color:#64748B;font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <div class="mbody">
+      <div class="sbox">
+        <div class="slbl">📋 Job Details</div>
+        <div class="g2" style="margin-bottom:10px">
+          <div class="fld"><label>Company Name (PayRoll) *</label><input id="fc" placeholder="e.g. Infosys BPM"/></div>
+          <div class="fld"><label>Role / Position *</label><input id="fr" placeholder="e.g. React Developer"/></div>
+        </div>
+        <div class="g3" style="margin-bottom:10px">
+          <div class="fld"><label>Experience</label><input id="fexp" placeholder="e.g. 3-5 Yrs"/></div>
+          <div class="fld"><label>Client</label><input id="fcl" placeholder="e.g. HDFC Bank"/></div>
+          <div class="fld"><label>Salary</label><input id="fsal" placeholder="e.g. 12 LPA"/></div>
+        </div>
+        <div class="fld"><label>Job Description</label><textarea id="fjd" rows="3" placeholder="Key skills, tech stack..."></textarea></div>
+      </div>
+      <div class="sbox">
+        <div class="slbl">👤 HR Details</div>
+        <div class="g3">
+          <div class="fld"><label>Name</label><input id="fhn" placeholder="HR Full Name"/></div>
+          <div class="fld"><label>Contact</label><input id="fhp" placeholder="+91 XXXXX XXXXX"/></div>
+          <div class="fld"><label>Email</label><input id="fhm" type="email" placeholder="hr@company.com"/></div>
+        </div>
+      </div>
+      <div class="sbox">
+        <div class="slbl">📅 Activity & Follow-up</div>
+        <div class="g3">
+          <div class="fld"><label>Resume Edited?</label>
+            <select id="fres" onchange="onResChange()"><option value="">— Select —</option><option>Yes</option><option>No</option></select>
+          </div>
+          <div class="fld"><label>Contacted On</label><input id="fcon" type="date"/></div>
+          <div class="fld"><label>Follow-up On</label><input id="ffu" type="date"/></div>
+        </div>
+        <div class="cbox" id="res-box" style="display:none">
+          <div style="font-size:10px;font-weight:700;color:#60A5FA;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">📄 Resume Link / Notes</div>
+          <div class="fld"><label>Google Drive/Docs link or paste notes</label><textarea id="frl" rows="2" placeholder="https://drive.google.com/...&#10;or paste highlights here"></textarea></div>
+          <div style="background:#0C1A3F;border-radius:7px;padding:7px 10px;margin-top:7px;font-size:11px;color:#60A5FA">💡 Share Google Doc with "Anyone with link" for in-app preview</div>
+        </div>
+      </div>
+      <div class="sbox">
+        <div class="slbl">📊 Status & Notes</div>
+        <div class="g2" style="margin-bottom:10px">
+          <div class="fld"><label>Status</label>
+            <select id="fst" onchange="onStChange()">
+              <option>Under Process</option><option>Rejected</option><option>Interview Scheduled</option>
+              <option>Interviewed</option><option>Further Process</option><option>Offered</option>
+            </select>
+          </div>
+          <div class="fld"><label>Remarks</label><input id="frm" placeholder="Brief note..."/></div>
+        </div>
+        <div class="cbox" id="iv-box" style="display:none">
+          <div style="font-size:10px;font-weight:700;color:#60A5FA;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px">🗓️ Interview Schedule</div>
+          <div class="g3">
+            <div class="fld"><label>Date</label><input id="fid" type="date"/></div>
+            <div class="fld"><label>Time</label><input id="fit" type="time"/></div>
+            <div class="fld"><label>Mode</label>
+              <select id="fim"><option value="">— Select —</option><option>Video Call</option><option>Phone Call</option><option>In-Person</option><option>Walk-in</option><option>Panel</option><option>Technical Round</option><option>HR Round</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="fld" style="margin-top:10px"><label>🎯 Interview Questions (one per line)</label>
+          <textarea id="fiq" rows="3" placeholder="Explain Virtual DOM?&#10;What is useCallback?"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-cancel" onclick="closeForm()">Cancel</button>
+      <button class="btn-save" onclick="saveJob()">✅ Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW MODAL -->
+<div class="ovl" id="view-ovl" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="vmModal" id="vm-content"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════
+// 🔥 FIREBASE CONFIG
+// Replace these values with your own from:
+// Firebase Console → Project Settings → Your Apps → Web → Config
+// ══════════════════════════════════════════════════════
+const FB = {
+  apiKey:            "AIzaSyA5r1FV21TzWZrFtMqcQiupQs4xCyHcn-E",
+  authDomain:        "jobtrackerapp-eda4f.firebaseapp.com",
+  projectId:         "jobtrackerapp-eda4f",
+  storageBucket:     "jobtrackerapp-eda4f.firebasestorage.app",
+  messagingSenderId: "105413244932",
+  appId:             "1:105413244932:web:d0bea6bae93da4f0949d51"
+};
+// ══════════════════════════════════════════════════════
+// 🔐 FIRESTORE SECURITY RULES (set in Firebase Console → Firestore → Rules):
+// rules_version = '2';
+// service cloud.firestore {
+//   match /databases/{database}/documents {
+//     match /users/{userId}/jobs/{jobId} {
+//       allow read, write: if request.auth != null && request.auth.uid == userId;
+//     }
+//   }
+// }
+// ══════════════════════════════════════════════════════
+
+const DEMO = FB.apiKey.startsWith("REPLACE");
+// LOCAL: when opened as file:// use localStorage instead of Firebase
+const LOCAL = location.protocol === "file:" || location.hostname === "localhost" || location.hostname === "127.0.0.1";
+
+const ST = {
+  "Under Process":       {bg:"#431407",color:"#FED7AA",dot:"#FB923C"},
+  "Rejected":            {bg:"#450A0A",color:"#FECACA",dot:"#F87171"},
+  "Interview Scheduled": {bg:"#0C1A3F",color:"#BFDBFE",dot:"#60A5FA"},
+  "Interviewed":         {bg:"#052E16",color:"#BBF7D0",dot:"#4ADE80"},
+  "Further Process":     {bg:"#2E1065",color:"#E9D5FF",dot:"#C084FC"},
+  "Offered":             {bg:"#022C22",color:"#A7F3D0",dot:"#34D399"},
+};
+const STATUSES = Object.keys(ST);
+const SAMPLE = [
+  {id:"d1",company:"Infosys BPM",role:"React Developer",jobDescription:"React, Redux, REST APIs",experience:"3-5 Yrs",hrName:"Sneha Iyer",contactNumber:"+91 98001 11222",mailId:"sneha.iyer@infosys.com",client:"Direct",salaryOffering:"12 LPA",resumeEdited:"Yes",resumeLink:"https://docs.google.com/document/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms/preview",mailContactedOn:"2026-03-05",followUpOn:"2026-03-15",status:"Interview Scheduled",remarks:"Round 1 cleared",interviewDate:"2026-03-18",interviewTime:"10:30",interviewMode:"Video Call",interviewQuestions:"Explain Virtual DOM?\nWhat is Redux Thunk?\nCSS Flexbox vs Grid?"},
+  {id:"d2",company:"Wipro Technologies",role:"Full Stack Engineer",jobDescription:"Node.js, React, MongoDB, AWS",experience:"4-7 Yrs",hrName:"Arjun Mehta",contactNumber:"+91 87654 99000",mailId:"arjun.mehta@wipro.com",client:"HDFC Bank",salaryOffering:"18 LPA",resumeEdited:"No",resumeLink:"",mailContactedOn:"2026-03-08",followUpOn:"2026-03-20",status:"Under Process",remarks:"Shortlisted",interviewDate:"",interviewTime:"",interviewMode:"",interviewQuestions:""},
+];
+
+let jobs=[], editId=null, filterSt="All", notifMap={}, currentUser=null, unsub=null;
+
+// Firebase / Local Storage
+let auth, db;
+
+// LOCAL MODE: persist jobs to localStorage
+function localSave() { try { localStorage.setItem("jq_jobs", JSON.stringify(jobs)); } catch(e){} }
+function localLoad() { try { const d=localStorage.getItem("jq_jobs"); return d?JSON.parse(d):[]; } catch(e){ return []; } }
+
+function showLocalApp() {
+  hide("loading");
+  hide("auth-screen");
+  jobs = localLoad();
+  // Fake user object for local mode
+  currentUser = { uid: "local", email: "local@device", displayName: "Local User" };
+  const a = document.getElementById("app-screen");
+  a.style.display = "flex"; a.classList.add("on");
+  document.getElementById("avatar").textContent = "ME";
+  document.getElementById("pmenu-email").textContent = "Saved locally on this device";
+  document.getElementById("btn-export").style.display = "flex";
+  document.getElementById("btn-add").style.display = "flex";
+  setSyncStatus("ok", "Saved locally");
+  renderAll();
+}
+
+async function initFB() {
+  // LOCAL: opened as file:// → skip Firebase, use localStorage
+  if (LOCAL) { showLocalApp(); return; }
+
+  // HOSTED: use Firebase auth
+  const timeout = setTimeout(() => { hide("loading"); showAuth(); }, 10000);
+  try {
+    const {initializeApp}           = await import("https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js");
+    const {getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+            createUserWithEmailAndPassword, updateProfile,
+            signOut, GoogleAuthProvider, signInWithPopup} = await import("https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js");
+    const {getFirestore, collection, addDoc, updateDoc,
+            deleteDoc, doc, query, orderBy,
+            onSnapshot, serverTimestamp}                  = await import("https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js");
+
+    // Store modules globally so auth action functions can use them
+    window._auth   = { signInWithEmailAndPassword, createUserWithEmailAndPassword,
+                        updateProfile, signOut, GoogleAuthProvider, signInWithPopup };
+    window._fs     = { collection, addDoc, updateDoc, deleteDoc, doc,
+                        query, orderBy, onSnapshot, serverTimestamp };
+
+    const app = initializeApp(FB);
+    auth = getAuth(app);
+    db   = getFirestore(app);
+
+    onAuthStateChanged(auth, user => {
+      clearTimeout(timeout);
+      hide("loading");
+      if (user) { currentUser = user; showApp(user); }
+      else       { showAuth(); }
+    });
+  } catch(e) {
+    clearTimeout(timeout);
+    console.error("Firebase init error:", e);
+    hide("loading");
+    showAuth();
+  }
+}
+
+function showAuth() { gs("auth-screen","flex"); gs("app-screen","none"); gs("app-screen").classList.remove("on"); }
+function showApp(user) {
+  gs("auth-screen","none");
+  const a=document.getElementById("app-screen"); a.style.display="flex"; a.classList.add("on");
+  const init=(user.displayName||user.email||"?").split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
+  document.getElementById("avatar").textContent=init;
+  document.getElementById("pmenu-email").textContent=user.email||"";
+  document.getElementById("btn-export").style.display="flex";
+  document.getElementById("btn-add").style.display="flex";
+  setSyncStatus("syn","Syncing...");
+  subscribeJobs(user.uid);
+}
+function hide(id){document.getElementById(id).style.display="none"}
+function gs(id,d){const e=document.getElementById(id);if(d)e.style.display=d;return e}
+
+function subscribeJobs(uid) {
+  if (unsub) unsub();
+  const {collection,query,orderBy,onSnapshot} = window._fs;
+  const q = query(collection(db,`users/${uid}/jobs`), orderBy("createdAt","asc"));
+  unsub = onSnapshot(q, snap => {
+    jobs = snap.docs.map(d=>({id:d.id,...d.data()}));
+    document.getElementById("hdr-sub").textContent=`${jobs.length} Applications`;
+    setSyncStatus("","Synced · "+jobs.length+" apps");
+    renderAll();
+  }, ()=>setSyncStatus("off","Offline"));
+}
+
+function setSyncStatus(cls,txt) {
+  document.getElementById("sdot").className="sdot "+(cls==="syn"?"syn":cls==="off"?"off":"");
+  document.getElementById("stxt").textContent=txt;
+}
+
+async function addJob(data) {
+  if(LOCAL){jobs.push({...data,id:"d"+Date.now()});localSave();renderAll();return;}
+  const {collection,addDoc,serverTimestamp}=window._fs;
+  await addDoc(collection(db,`users/${currentUser.uid}/jobs`),{...data,createdAt:serverTimestamp()});
+}
+async function updateJob(id,data) {
+  if(LOCAL){jobs=jobs.map(j=>j.id===id?{...data,id}:j);localSave();renderAll();return;}
+  const {doc,updateDoc}=window._fs;
+  await updateDoc(doc(db,`users/${currentUser.uid}/jobs/${id}`),data);
+}
+async function deleteJob(id) {
+  if(LOCAL){jobs=jobs.filter(j=>j.id!==id);localSave();renderAll();return;}
+  const {doc,deleteDoc}=window._fs;
+  await deleteDoc(doc(db,`users/${currentUser.uid}/jobs/${id}`));
+}
+
+// AUTH ACTIONS
+window.switchTab=(tab)=>{
+  document.querySelectorAll(".auth-tab").forEach((t,i)=>t.classList.toggle("active",(i===0&&tab==="login")||(i===1&&tab==="signup")));
+  document.getElementById("lform").style.display=tab==="login"?"block":"none";
+  document.getElementById("sform").style.display=tab==="signup"?"block":"none";
+  document.getElementById("aerr").classList.remove("show");
+};
+function aerr(msg){const e=document.getElementById("aerr");e.textContent=msg;e.classList.add("show");}
+
+window.doLogin=async()=>{
+  if(LOCAL)return toast("Running locally — data saved in this browser.","info");
+  const em=document.getElementById("lemail").value.trim(),pw=document.getElementById("lpass").value;
+  if(!em||!pw)return aerr("Fill in all fields.");
+  try{ document.querySelector("#lform .auth-btn").disabled=true;
+    await window._auth.signInWithEmailAndPassword(auth,em,pw);
+  }catch(e){document.querySelector("#lform .auth-btn").disabled=false;aerr(e.code==="auth/invalid-credential"?"Invalid email or password.":e.message);}
+};
+window.doSignup=async()=>{
+  if(LOCAL)return toast("Running locally — data saved in this browser.","info");
+  const nm=document.getElementById("sname").value.trim(),em=document.getElementById("semail").value.trim(),pw=document.getElementById("spass").value;
+  if(!nm||!em||!pw)return aerr("Fill in all fields.");
+  if(pw.length<6)return aerr("Password must be 6+ characters.");
+  try{ document.querySelector("#sform .auth-btn").disabled=true;
+    const cred=await window._auth.createUserWithEmailAndPassword(auth,em,pw);
+    await window._auth.updateProfile(cred.user,{displayName:nm});
+  }catch(e){document.querySelector("#sform .auth-btn").disabled=false;aerr(e.code==="auth/email-already-in-use"?"Email already in use.":e.message);}
+};
+window.doGoogle=async()=>{
+  if(LOCAL)return toast("Running locally — data saved in this browser.","info");
+  try{const p=new window._auth.GoogleAuthProvider();await window._auth.signInWithPopup(auth,p);}catch(e){aerr(e.message);}
+};
+window.doLogout=async()=>{
+  closePmenu();
+  if(LOCAL){showAuth();document.getElementById("app-screen").classList.remove("on");return;}
+  if(unsub)unsub();
+  await window._auth.signOut(auth);
+};
+
+// RENDER
+window.renderAll=()=>{
+  const q=(document.getElementById("srch")||{}).value||"";
+  const f=jobs.filter(j=>{
+    const s=filterSt==="All"||j.status===filterSt;
+    const sq=!q||[j.company,j.role,j.hrName,j.client,j.mailId].some(x=>(x||"").toLowerCase().includes(q.toLowerCase()));
+    return s&&sq;
+  });
+  renderStats(); renderChips(); renderCards(f); renderTable(f);
+  document.getElementById("empty").style.display=f.length?"none":"block";
+  document.getElementById("count").textContent=`Showing ${f.length} of ${jobs.length} applications`;
+};
+
+function renderStats(){
+  const c={t:jobs.length,iv:jobs.filter(j=>j.status==="Interview Scheduled").length,of:jobs.filter(j=>j.status==="Offered").length,up:jobs.filter(j=>j.status==="Under Process").length};
+  document.getElementById("stats").innerHTML=[
+    {l:"Total Applied",v:c.t,i:"📋",c:"#6366F1"},{l:"Interviews",v:c.iv,i:"🎯",c:"#60A5FA"},
+    {l:"Offers",v:c.of,i:"🎉",c:"#4ADE80"},{l:"Pending",v:c.up,i:"⏳",c:"#F59E0B"}
+  ].map(s=>`<div class="stat"><div class="stat-ico" style="background:${s.c}18">${s.i}</div><div><div class="stat-v" style="color:${s.c}">${s.v}</div><div class="stat-l">${s.l}</div></div></div>`).join("");
+}
+
+function renderChips(){
+  const cnt=STATUSES.reduce((a,s)=>({...a,[s]:jobs.filter(j=>j.status===s).length}),{});
+  document.getElementById("chips").innerHTML=
+    `<button class="chip ${filterSt==="All"?"active":""}" onclick="setFilter('All')" style="${filterSt==="All"?"background:#1E40AF;border-color:#3B82F6;color:#BFDBFE":""}">All (${jobs.length})</button>`+
+    STATUSES.map(s=>{const st=ST[s],a=filterSt===s;
+      return `<button class="chip ${a?"active":""}" onclick="setFilter('${s}')" style="${a?`background:${st.bg};border-color:${st.dot};color:${st.color}`:""}"><span class="dot" style="background:${st.dot}"></span>${s} (${cnt[s]})</button>`;
+    }).join("");
+}
+window.setFilter=s=>{filterSt=s;renderAll();};
+
+function renderCards(f){
+  document.getElementById("cards").innerHTML=f.map(j=>{
+    const st=ST[j.status]||ST["Under Process"],qs=(j.interviewQuestions||"").split("\n").filter(Boolean);
+    return `<div class="jcard" onclick="openView('${j.id}')">
+      <div class="jcard-bar" style="background:linear-gradient(90deg,${st.dot},${st.dot}88)"></div>
+      <div class="jcard-body">
+        <div class="jcard-co">${x(j.company)||"—"}</div>
+        <div class="jcard-role">${x(j.role)||"—"}</div>
+        <div class="jcard-meta">
+          <span class="sbadge" style="background:${st.bg};color:${st.color}"><span class="dot" style="background:${st.dot}"></span>${j.status}</span>
+          ${j.salaryOffering?`<span class="jcard-pill" style="background:#052E16;color:#4ADE80">💰 ${x(j.salaryOffering)}</span>`:""}
+          ${j.experience?`<span class="jcard-pill" style="background:#0C1A3F;color:#60A5FA">⏱ ${x(j.experience)}</span>`:""}
+          ${(j.status==="Interview Scheduled")&&j.interviewDate?`<span class="jcard-pill" style="background:#0C1A3F;color:#BFDBFE">🗓 ${j.interviewDate}${j.interviewTime?" "+fmt12(j.interviewTime):""}</span>`:""}
+        </div>
+        ${j.hrName?`<div style="font-size:11px;color:#475569;margin-top:8px">👤 ${x(j.hrName)}${j.contactNumber?" · "+x(j.contactNumber):""}</div>`:""}
+        <div class="jcard-acts">
+          <button class="jcard-btn" onclick="event.stopPropagation();openEdit('${j.id}')">✏️ Edit</button>
+          ${qs.length?`<button class="jcard-btn" style="color:#C084FC;border-color:#2D1B4E;background:#1a0f30" onclick="event.stopPropagation();openView('${j.id}')">📋 ${qs.length} Q</button>`:""}
+          <button class="jcard-btn red" onclick="event.stopPropagation();confirmDel('${j.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderTable(f){
+  document.getElementById("tbody").innerHTML=f.map((j,i)=>{
+    const st=ST[j.status]||ST["Under Process"],qs=(j.interviewQuestions||"").split("\n").filter(Boolean);
+    const past=j.followUpOn&&new Date(j.followUpOn)<new Date();
+    const isIv=j.status==="Interview Scheduled"||j.status==="Interviewed";
+    const bg=i%2?"#192130":"#1E293B";
+    return `<tr style="background:${bg}" onmouseenter="this.style.background='#243044'" onmouseleave="this.style.background='${bg}'">
+      <td style="text-align:center;color:#4B5563">${i+1}</td>
+      <td style="color:#E2E8F0;font-weight:700;cursor:pointer" onclick="openView('${j.id}')">${x(j.company)||"—"}</td>
+      <td style="color:#38BDF8;font-weight:600">${x(j.role)||"—"}</td>
+      <td style="color:#4B5563;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${x(j.jobDescription)}">${x(j.jobDescription)||"—"}</td>
+      <td style="text-align:center;color:#4B5563">${x(j.experience)||"—"}</td>
+      <td style="color:#7DD3FC">${x(j.hrName)||"—"}</td>
+      <td style="color:#7DD3FC;font-family:'DM Mono',monospace">${x(j.contactNumber)||"—"}</td>
+      <td style="color:#7DD3FC;font-family:'DM Mono',monospace;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x(j.mailId)||"—"}</td>
+      <td style="text-align:center;color:#4B5563">${x(j.client)||"—"}</td>
+      <td style="text-align:center;color:#4ADE80;font-weight:700">${x(j.salaryOffering)||"—"}</td>
+      <td style="text-align:center">${j.resumeEdited?`<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+        <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:${j.resumeEdited==="Yes"?"#14532D":"#292524"};color:${j.resumeEdited==="Yes"?"#4ADE80":"#78716C"}">${j.resumeEdited}</span>
+        ${j.resumeEdited==="Yes"?(j.resumeLink?`<span style="font-size:10px;color:#60A5FA;cursor:pointer" onclick="openView('${j.id}')">📄 Preview</span>`:`<span style="font-size:10px;color:#F87171">⚠️ Missing</span>`):""}
+      </div>`:"—"}</td>
+      <td style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:#64748B">${j.mailContactedOn||"—"}</td>
+      <td style="text-align:center">
+        ${j.followUpOn?`<span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:${past?"#F87171":"#4ADE80"}">${j.followUpOn}</span>`:"—"}
+        ${isIv&&j.interviewDate?`<div style="margin-top:3px"><span style="font-size:10px;font-weight:700;color:#60A5FA;background:#0C1A3F;padding:2px 6px;border-radius:9px;border:1px solid #1E40AF;white-space:nowrap">🗓 ${j.interviewDate}</span></div>`:""}
+      </td>
+      <td>${stCell(j)}</td>
+      <td style="color:#4B5563;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x(j.remarks)||"—"}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:5px">
+          ${qs.length?`<span style="font-size:11px;color:#C084FC;font-weight:600;background:#2D1B4E;padding:2px 8px;border-radius:20px;cursor:pointer;white-space:nowrap" onclick="openView('${j.id}')">📋 ${qs.length} Q</span>`:`<span style="color:#374151;font-size:11px">—</span>`}
+          <button onclick="openEdit('${j.id}')" style="padding:4px 7px;border-radius:6px;border:1px solid #334155;background:#0F172A;color:#94A3B8;font-size:11px;cursor:pointer">✏️</button>
+          <button onclick="confirmDel('${j.id}')" style="padding:4px 7px;border-radius:6px;border:1px solid #3F1515;background:#1C0A0A;color:#F87171;font-size:11px;cursor:pointer">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+function stCell(j){
+  const st=ST[j.status]||ST["Under Process"];
+  if(j.status!=="Interview Scheduled")return `<span class="sbadge" style="background:${st.bg};color:${st.color}"><span class="dot" style="background:${st.dot}"></span>${j.status}</span>`;
+  const cd=j.interviewDate?Math.ceil((new Date(j.interviewDate)-new Date())/(864e5)):null;
+  const no=notifMap[j.id]||false;
+  return `<div style="position:relative;display:inline-block" onmouseenter="showTT('tt${j.id}')" onmouseleave="hideTT('tt${j.id}')">
+    <span class="sbadge" style="background:${st.bg};color:${st.color};cursor:pointer;border:1px solid ${st.dot}55">
+      <span class="dot" style="background:${st.dot}"></span>${j.status} <span style="font-size:9px;opacity:0.5">▾</span>
+    </span>
+    <div id="tt${j.id}" style="display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);z-index:9999;background:#0C1628;border:1px solid #1E40AF;border-radius:14px;padding:14px;min-width:240px;box-shadow:0 20px 60px rgba(0,0,0,0.8)">
+      <div style="position:absolute;top:-7px;left:50%;transform:translateX(-50%) rotate(45deg);width:12px;height:12px;background:#0C1628;border-top:1px solid #1E40AF;border-left:1px solid #1E40AF"></div>
+      <div style="font-size:12px;font-weight:800;color:#BFDBFE;margin-bottom:10px">🗓️ Interview Details</div>
+      ${[["📆","Date",j.interviewDate,true],["⏰","Time",fmt12(j.interviewTime),true],["💻","Mode",j.interviewMode,false]].map(([ico,lbl,val,mo])=>
+        `<div style="display:flex;align-items:center;gap:7px;background:rgba(96,165,250,0.06);border-radius:8px;padding:6px 9px;margin-bottom:5px">
+          <span style="font-size:13px">${ico}</span>
+          <span style="font-size:9px;font-weight:700;color:#475569;min-width:28px;text-transform:uppercase">${lbl}</span>
+          <span style="font-size:12px;font-weight:700;color:${(!val||val==="—")?"#334155":"#60A5FA"};margin-left:auto;font-family:${mo&&val?"'DM Mono',monospace":"inherit"}">${val||"—"}</span>
+        </div>`).join("")}
+      ${cd!=null?`<div style="text-align:center;padding:5px 9px;border-radius:8px;margin:8px 0;background:${cd<=0?"#052E16":cd===1?"#3B1F00":"#0C1A3F"};border:1px solid ${cd<=0?"#166534":cd===1?"#9A3412":"#1E40AF"}">
+        <span style="font-size:11px;font-weight:700;color:${cd<=0?"#4ADE80":cd===1?"#FBBF24":"#60A5FA"}">${cd<=0?"✅ Passed":cd===1?"⚡ Tomorrow!":"📅 "+cd+" days away"}</span>
+      </div>`:""}
+      <div style="border-top:1px solid #1E293B;padding-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div><div style="font-size:11px;font-weight:700;color:${no?"#4ADE80":"#94A3B8"}">${no?"🔔":"🔕"} Notify 30 min before</div></div>
+        <div onclick="toggleNotif('${j.id}',${!no})" style="width:44px;height:24px;border-radius:12px;background:${no?"linear-gradient(90deg,#22C55E,#16A34A)":"#1E293B"};border:2px solid ${no?"#22C55E":"#334155"};cursor:pointer;position:relative;flex-shrink:0;transition:all 0.3s">
+          <div style="position:absolute;top:2px;left:${no?"20px":"2px"};width:16px;height:16px;border-radius:50%;background:${no?"#fff":"#475569"};transition:left 0.3s"></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+window.showTT=id=>{const e=document.getElementById(id);if(e)e.style.display="block";};
+window.hideTT=id=>{const e=document.getElementById(id);if(e)e.style.display="none";};
+
+window.toggleNotif=(jid,en)=>{
+  const j=jobs.find(x=>x.id===jid); if(!j)return;
+  if(en&&(!j.interviewDate||!j.interviewTime))return toast("Set Interview Date & Time first!","error");
+  notifMap[jid]=en;
+  if(en){
+    const req=()=>{const dt=new Date(`${j.interviewDate}T${j.interviewTime}`),ms=dt-30*60*1000-Date.now();if(ms>0){setTimeout(()=>{try{new Notification(`⏰ Interview in 30 min!`,{body:`${j.company} — ${j.role}`});}catch(e){}},ms);toast(`🔔 Reminder set for ${j.company}!`);}else{toast("Interview time passed","info");notifMap[jid]=false;}};
+    Notification.requestPermission().then(p=>p==="granted"?req():(toast("Notifications denied","error"),notifMap[jid]=false));
+  }else toast("🔕 Reminder off","info");
+  renderAll();
+};
+
+// FORM
+window.openAdd=()=>{editId=null;document.getElementById("form-title").textContent="➕ New Application";clearForm();document.getElementById("form-ovl").style.display="flex";};
+window.openEdit=id=>{
+  const j=jobs.find(x=>x.id===id);if(!j)return;editId=id;
+  document.getElementById("form-title").textContent="✏️ Edit Application";
+  fillForm(j);document.getElementById("form-ovl").style.display="flex";document.getElementById("view-ovl").style.display="none";
+};
+window.closeForm=()=>document.getElementById("form-ovl").style.display="none";
+
+function clearForm(){
+  ["fc","fr","fexp","fcl","fsal","fjd","fhn","fhp","fhm","fcon","ffu","frl","frm","fiq","fid","fit"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  document.getElementById("fres").value="";document.getElementById("fst").value="Under Process";document.getElementById("fim").value="";
+  onStChange();onResChange();
+}
+function fillForm(j){
+  const s=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||"";};
+  s("fc",j.company);s("fr",j.role);s("fexp",j.experience);s("fcl",j.client);s("fsal",j.salaryOffering);s("fjd",j.jobDescription);
+  s("fhn",j.hrName);s("fhp",j.contactNumber);s("fhm",j.mailId);
+  s("fcon",j.mailContactedOn);s("ffu",j.followUpOn);s("fres",j.resumeEdited);s("frl",j.resumeLink);
+  s("fst",j.status);s("frm",j.remarks);s("fiq",j.interviewQuestions);s("fid",j.interviewDate);s("fit",j.interviewTime);s("fim",j.interviewMode);
+  onStChange();onResChange();
+}
+function gf(){
+  const g=id=>(document.getElementById(id)||{}).value||"";
+  return {company:g("fc"),role:g("fr"),experience:g("fexp"),client:g("fcl"),salaryOffering:g("fsal"),jobDescription:g("fjd"),hrName:g("fhn"),contactNumber:g("fhp"),mailId:g("fhm"),mailContactedOn:g("fcon"),followUpOn:g("ffu"),resumeEdited:g("fres"),resumeLink:g("frl"),status:g("fst"),remarks:g("frm"),interviewQuestions:g("fiq"),interviewDate:g("fid"),interviewTime:g("fit"),interviewMode:g("fim")};
+}
+window.onStChange=()=>{
+  const s=document.getElementById("fst").value;
+  document.getElementById("iv-box").style.display=(s==="Interview Scheduled"||s==="Interviewed")?"block":"none";
+};
+window.onResChange=()=>document.getElementById("res-box").style.display=document.getElementById("fres").value==="Yes"?"block":"none";
+window.saveJob=async()=>{
+  const d=gf();if(!d.company||!d.role)return toast("Company & Role required!","error");
+  try{editId?await updateJob(editId,d):await addJob(d);closeForm();toast(editId?"✅ Updated!":"🎉 Application added!");}catch(e){toast("Error: "+e.message,"error");}
+};
+
+// VIEW
+window.openView=id=>{
+  const j=jobs.find(x=>x.id===id);if(!j)return;
+  const st=ST[j.status]||ST["Under Process"],qs=(j.interviewQuestions||"").split("\n").filter(Boolean);
+  const isIv=j.status==="Interview Scheduled"||j.status==="Interviewed";
+  const isPast=j.interviewDate&&new Date(j.interviewDate+(j.interviewTime?"T"+j.interviewTime:""))<new Date();
+  const cd=j.interviewDate?Math.ceil((new Date(j.interviewDate)-new Date())/864e5):null;
+  const embedUrl=getEmbed(j.resumeLink),isUrl=(j.resumeLink||"").startsWith("http");
+  document.getElementById("vm-content").innerHTML=`
+    <div class="vhdr">
+      <div><div class="mtitle">👁 Application Preview</div><div class="msub">${x(j.company)} · ${x(j.role)}</div></div>
+      <div style="display:flex;gap:7px">
+        <button onclick="openEdit('${id}')" style="padding:6px 12px;border-radius:8px;border:1px solid #334155;background:#0F172A;color:#94A3B8;font-size:12px;font-weight:600;cursor:pointer">✏️ Edit</button>
+        <button onclick="document.getElementById('view-ovl').style.display='none'" style="padding:6px 12px;border-radius:8px;border:none;background:linear-gradient(135deg,#38BDF8,#0EA5E9);color:#fff;font-size:12px;font-weight:700;cursor:pointer">✕ Close</button>
+      </div>
+    </div>
+    <div style="padding:16px 18px;display:grid;gap:12px">
+      <div class="hero">
+        <div class="hbar" style="background:linear-gradient(90deg,${st.dot},${st.dot}66)"></div>
+        <div class="hbody">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:44px;height:44px;border-radius:13px;background:${st.dot}22;border:1px solid ${st.dot}44;display:flex;align-items:center;justify-content:center;font-size:20px">🏢</div>
+              <div><div class="hco">${x(j.company)||"—"}</div><div class="hrole">${x(j.role)||"—"}</div>${j.client?`<div style="font-size:11px;color:#475569;margin-top:1px">Client: <strong>${x(j.client)}</strong></div>`:""}</div>
+            </div>
+            <span class="sbadge" style="background:${st.bg};color:${st.color};border:1px solid ${st.dot}44"><span class="dot" style="background:${st.dot};box-shadow:0 0 5px ${st.dot}"></span>${j.status}</span>
+          </div>
+          <div class="pills">
+            ${j.experience?`<div class="ipill" style="background:#38BDF818;border-color:#38BDF830"><span class="pl" style="color:#38BDF8">Exp</span><span class="pv" style="color:#38BDF8">${x(j.experience)}</span></div>`:""}
+            ${j.salaryOffering?`<div class="ipill" style="background:#4ADE8018;border-color:#4ADE8030"><span class="pl" style="color:#4ADE80">Salary</span><span class="pv" style="color:#4ADE80">${x(j.salaryOffering)}</span></div>`:""}
+            ${j.mailContactedOn?`<div class="ipill" style="background:#F59E0B18;border-color:#F59E0B30"><span class="pl" style="color:#F59E0B">Contacted</span><span class="pv" style="color:#F59E0B">${j.mailContactedOn}</span></div>`:""}
+            ${j.followUpOn?`<div class="ipill" style="background:#C084FC18;border-color:#C084FC30"><span class="pl" style="color:#C084FC">Follow-up</span><span class="pv" style="color:#C084FC">${j.followUpOn}</span></div>`:""}
+            ${isIv&&j.interviewDate?`<div class="ipill" style="background:#60A5FA18;border-color:#60A5FA30"><span class="pl" style="color:#60A5FA">Interview</span><span class="pv" style="color:#60A5FA">${j.interviewDate}${j.interviewTime?" · "+fmt12(j.interviewTime):""}</span></div>`:""}
+          </div>
+        </div>
+        <div class="hrgrid">
+          ${[["👤","HR Name",j.hrName,false],["📱","Contact",j.contactNumber,true],["📧","Email",j.mailId,true]].map(([ico,lbl,val,mo])=>
+            `<div class="hrcell"><div class="hrlbl">${ico} ${lbl}</div><div class="hrval" ${mo?'style="font-family:\'DM Mono\',monospace"':""}>${x(val)||"—"}</div></div>`).join("")}
+        </div>
+      </div>
+      <div class="two">
+        <div class="ibox"><div class="iblbl">📋 Job Description</div><div class="ibtxt">${x(j.jobDescription)||'<span style="color:#334155">Not provided</span>'}</div></div>
+        <div class="ibox"><div class="iblbl">📝 Remarks</div><div class="ibtxt">${x(j.remarks)||'<span style="color:#334155">No remarks</span>'}</div>
+          ${j.resumeEdited?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid #334155">
+            <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">Resume Edited?</div>
+            <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:${j.resumeEdited==="Yes"?"#14532D":"#292524"};color:${j.resumeEdited==="Yes"?"#4ADE80":"#9CA3AF"}">${j.resumeEdited==="Yes"?"✅ Yes — Edited":"❌ No"}</span>
+          </div>`:""}
+        </div>
+      </div>
+      ${isIv&&(j.interviewDate||j.interviewTime||j.interviewMode)?`
+      <div class="ivcard">
+        <div class="ivhdr">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:17px">🗓️</span><div><div style="font-size:13px;font-weight:800;color:#BFDBFE">Interview Schedule</div><div style="font-size:11px;color:#93C5FD">${j.status}</div></div></div>
+          ${cd!=null?`<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:${isPast?"#052E16":cd===0?"#431407":cd===1?"#3B1F00":"#0C1A3F"};color:${isPast?"#4ADE80":cd===0?"#FB923C":cd===1?"#FBBF24":"#60A5FA"}">${isPast?"✅ Done":cd===0?"🔥 Today!":cd===1?"⚡ Tomorrow":"📅 In "+cd+" days"}</span>`:""}
+        </div>
+        <div class="ivtiles">
+          ${[["📆","Date",j.interviewDate,true],["⏰","Time",fmt12(j.interviewTime),true],["💻","Mode",j.interviewMode,false]].map(([ico,lbl,val,mo])=>
+            `<div class="ivtile"><div style="font-size:18px;margin-bottom:4px">${ico}</div><div style="font-size:9px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px">${lbl}</div><div style="font-size:13px;font-weight:800;color:#60A5FA;font-family:${mo?"'DM Mono',monospace":"inherit"}">${val||"—"}</div></div>`).join("")}
+        </div>
+      </div>`:""}
+      ${j.resumeEdited==="Yes"?`
+      <div style="background:#1E293B;border-radius:13px;overflow:hidden;border:1px solid #1E40AF">
+        <div style="background:linear-gradient(90deg,#0C1A3F,#1E293B);padding:11px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1E3A6E">
+          <div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px">📄</span><div><div style="font-size:12px;font-weight:700;color:#60A5FA">Resume Preview</div><div style="font-size:10px;color:#475569">Edited version</div></div></div>
+          ${isUrl&&embedUrl?`<div style="display:flex;gap:5px"><button class="preview-tab active" id="ptab-iv" onclick="swPrev(true)" style="padding:4px 10px;border-radius:6px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:#1D4ED8;color:#fff;font-family:inherit">🖥 Preview</button><button id="ptab-lk" onclick="swPrev(false)" style="padding:4px 10px;border-radius:6px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:#0F172A;color:#64748B;font-family:inherit">🔗 Link</button></div>`:""}
+        </div>
+        ${j.resumeLink?(isUrl?(embedUrl?`<div id="prev-iv"><iframe src="${embedUrl}" style="width:100%;height:400px;border:none;display:block;background:#0F172A"></iframe><div style="padding:8px 16px;background:#0F172A;border-top:1px solid #1E293B;display:flex;justify-content:flex-end"><a href="${j.resumeLink}" target="_blank" style="font-size:12px;color:#38BDF8;font-weight:600;text-decoration:none;padding:5px 11px;border-radius:7px;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.2)">↗ Open</a></div></div><div id="prev-lk" style="display:none;padding:16px"><a href="${j.resumeLink}" target="_blank" style="color:#38BDF8;font-family:'DM Mono',monospace;font-size:12px;word-break:break-all;text-decoration:none">${x(j.resumeLink)}</a></div>`:
+        `<div style="padding:14px"><a href="${j.resumeLink}" target="_blank" style="color:#38BDF8;font-family:'DM Mono',monospace;font-size:12px;word-break:break-all">${x(j.resumeLink)}</a></div>`):
+        `<div style="padding:14px"><div style="background:#0F172A;border-radius:10px;padding:12px 14px;font-size:12px;color:#CBD5E1;line-height:1.8;white-space:pre-wrap;font-family:'DM Mono',monospace">${x(j.resumeLink)}</div></div>`):`<div style="padding:24px;text-align:center"><div style="font-size:32px;margin-bottom:6px">⚠️</div><div style="font-size:12px;color:#F87171;font-weight:700">Resume not added yet</div></div>`}
+      </div>`:""}
+      ${qs.length?`<div style="background:#1E293B;border-radius:13px;overflow:hidden;border:1px solid #2D1B4E">
+        <div style="padding:12px 16px;border-bottom:1px solid #2D1B4E;font-size:10px;font-weight:700;color:#C084FC;text-transform:uppercase;letter-spacing:0.1em">🎯 Interview Questions</div>
+        <div class="iqlist">${qs.map((q,i)=>`<div class="iqitem"><span style="color:#C084FC;font-weight:800;font-size:12px;min-width:22px">Q${i+1}</span><span style="color:#E9D5FF;font-size:13px;line-height:1.6">${x(q)}</span></div>`).join("")}</div>
+      </div>`:""}
+    </div>`;
+  document.getElementById("view-ovl").style.display="flex";
+};
+window.swPrev=show=>{
+  const iv=document.getElementById("prev-iv"),lk=document.getElementById("prev-lk"),pt=document.getElementById("ptab-iv"),pl=document.getElementById("ptab-lk");
+  if(iv)iv.style.display=show?"block":"none";if(lk)lk.style.display=show?"none":"block";
+  if(pt){pt.style.background=show?"#1D4ED8":"#0F172A";pt.style.color=show?"#fff":"#64748B";}
+  if(pl){pl.style.background=show?"#0F172A":"#1D4ED8";pl.style.color=show?"#64748B":"#fff";}
+};
+
+window.confirmDel=id=>{
+  const j=jobs.find(x=>x.id===id);if(!j)return;
+  if(confirm(`Delete "${j.company} — ${j.role}"?`))deleteJob(id).then(()=>toast("Deleted.","info")).catch(e=>toast("Error: "+e.message,"error"));
+};
+
+// EXPORT
+function doExcelExport(){
+  const XLSX=window.XLSX;
+  const hdrs=["Sl. No","Company","Role","Job Description","Experience","HR Name","Contact","Mail ID","Client","Salary","Resume Edited","Resume Link","Contacted On","Follow-up","Interview Date","Interview Time","Interview Mode","Status","Remarks","Interview Questions"];
+  const rows=jobs.map((j,i)=>[i+1,j.company||"",j.role||"",j.jobDescription||"",j.experience||"",j.hrName||"",j.contactNumber||"",j.mailId||"",j.client||"",j.salaryOffering||"",j.resumeEdited||"",j.resumeLink||"",j.mailContactedOn||"",j.followUpOn||"",j.interviewDate||"",j.interviewTime||"",j.interviewMode||"",j.status||"",j.remarks||"",(j.interviewQuestions||"").replace(/\n/g," | ")]);
+  const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([hdrs,...rows]);
+  ws["!cols"]=[{wch:5},{wch:22},{wch:20},{wch:32},{wch:12},{wch:18},{wch:18},{wch:28},{wch:14},{wch:14},{wch:16},{wch:36},{wch:18},{wch:14},{wch:16},{wch:14},{wch:18},{wch:22},{wch:24},{wch:48}];
+  ws["!sheetViews"]=[{state:"frozen",ySplit:1,topLeftCell:"A2",activeCell:"A2",sqref:"A2"}];
+  XLSX.utils.book_append_sheet(wb,ws,"Job Applications");
+  const ws2=XLSX.utils.aoa_to_sheet([["Job Tracker — Summary",""],[""],[" Total Applications",jobs.length],...STATUSES.map(s=>[" "+s,jobs.filter(j=>j.status===s).length]),[""],[" Exported On",new Date().toLocaleString()]]);
+  ws2["!cols"]=[{wch:30},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,ws2,"Summary");
+  XLSX.writeFile(wb,`JobQuest_${new Date().toISOString().split("T")[0]}.xlsx`);
+  toast("📊 Exported to Excel!");
+}
+window.exportExcel=()=>{
+  closePmenu();
+  if(window.XLSX){doExcelExport();return;}
+  toast("Preparing export...","info");
+  const s=document.createElement("script");
+  s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+  s.onload=()=>doExcelExport();
+  s.onerror=()=>toast("Could not load Excel library. Check your internet connection.","error");
+  document.head.appendChild(s);
+};
+
+// HELPERS
+function x(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function fmt12(t){if(!t)return null;const[h,m]=t.split(":");const hr=parseInt(h);return `${hr>12?hr-12:hr||12}:${m} ${hr>=12?"PM":"AM"}`;}
+function getEmbed(url){
+  if(!url)return null;
+  if(url.includes("docs.google.com/document")&&!url.includes("/preview"))return url.replace(/\/edit.*$/,"/preview").replace(/\/pub.*$/,"/preview");
+  if(url.includes("drive.google.com/file")){const m=url.match(/\/d\/([a-zA-Z0-9_-]+)/);if(m)return `https://drive.google.com/file/d/${m[1]}/preview`;}
+  if(url.includes("drive.google.com")&&url.includes("id=")){const m=url.match(/id=([a-zA-Z0-9_-]+)/);if(m)return `https://drive.google.com/file/d/${m[1]}/preview`;}
+  return url;
+}
+window.toast=(msg,type="success")=>{const e=document.getElementById("toast");e.style.background=type==="error"?"#7F1D1D":type==="info"?"#1E3A5F":"#14532D";e.textContent=(type==="error"?"⚠️ ":type==="info"?"ℹ️ ":"✅ ")+msg;e.classList.add("on");setTimeout(()=>e.classList.remove("on"),3000);};
+window.togglePmenu=()=>document.getElementById("pmenu").classList.toggle("on");
+function closePmenu(){document.getElementById("pmenu").classList.remove("on");}
+document.addEventListener("click",e=>{if(!e.target.closest("#pmenu")&&!e.target.closest(".avatar"))closePmenu();});
+window.navTo=btn=>{document.querySelectorAll(".nitem").forEach(b=>b.classList.remove("on"));btn.classList.add("on");};
+
+// PWA Manifest
+const mf={name:"JobQuest — Job Tracker",short_name:"JobQuest",start_url:"./",display:"standalone",background_color:"#0F172A",theme_color:"#0F172A",orientation:"portrait",icons:[{src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230EA5E9'/><text y='.9em' font-size='80'>💼</text></svg>",sizes:"any",type:"image/svg+xml"}]};
+document.getElementById("pwa-manifest").href=URL.createObjectURL(new Blob([JSON.stringify(mf)],{type:"application/json"}));
+
+// BOOTSTRAP
+async function boot(){
+  try { await initFB(); }
+  catch(e){ console.error("Boot error:",e); showLocalApp(); }
+}
+boot();
+</script>
+</body>
+</html>
