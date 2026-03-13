@@ -433,17 +433,26 @@ let jobs=[], editId=null, filterSt="All", notifMap={}, currentUser=null, unsub=n
 let auth, db;
 async function initFB() {
   if (DEMO) { jobs=[...SAMPLE]; return; }
-  const {initializeApp} = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
-  const {getAuth,onAuthStateChanged:oac,...authMod} = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-  const {getFirestore,...fsMod} = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-  window._authMod = authMod; window._fsMod = fsMod;
-  const app = initializeApp(FB);
-  auth = getAuth(app); db = getFirestore(app);
-  oac(auth, user => {
+  const timeout = setTimeout(() => { hide("loading"); showAuth(); }, 8000);
+  try {
+    const {initializeApp} = await import("https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js");
+    const {getAuth,onAuthStateChanged:oac,...authMod} = await import("https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js");
+    const {getFirestore,...fsMod} = await import("https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js");
+    window._authMod = authMod; window._fsMod = fsMod;
+    const app = initializeApp(FB);
+    auth = getAuth(app); db = getFirestore(app);
+    oac(auth, user => {
+      clearTimeout(timeout);
+      hide("loading");
+      if (user) { currentUser=user; showApp(user); }
+      else showAuth();
+    });
+  } catch(e) {
+    clearTimeout(timeout);
+    console.error("Firebase init error:", e);
     hide("loading");
-    if (user) { currentUser=user; showApp(user); }
-    else showAuth();
-  });
+    showAuth();
+  }
 }
 
 function showAuth() { gs("auth-screen","flex"); gs("app-screen","none"); gs("app-screen").classList.remove("on"); }
