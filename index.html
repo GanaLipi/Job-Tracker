@@ -395,7 +395,7 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
 <div class="toast" id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script type="module">
+<script>
 // ══════════════════════════════════════════════════════
 // 🔥 FIREBASE CONFIG
 // Replace these values with your own from:
@@ -412,6 +412,7 @@ const FB = {
 // ══════════════════════════════════════════════════════
 
 const DEMO = FB.apiKey.startsWith("REPLACE");
+const LOCAL = location.protocol === "file:" || location.hostname === "localhost" || location.hostname === "127.0.0.1";
 
 const ST = {
   "Under Process":       {bg:"#431407",color:"#FED7AA",dot:"#FB923C"},
@@ -429,30 +430,31 @@ const SAMPLE = [
 
 let jobs=[], editId=null, filterSt="All", notifMap={}, currentUser=null, unsub=null;
 
-// Firebase
+// Firebase / Local Storage
 let auth, db;
+
+// LOCAL MODE: persist jobs to localStorage
+function localSave() { try { localStorage.setItem("jq_jobs", JSON.stringify(jobs)); } catch(e){} }
+function localLoad() { try { const d=localStorage.getItem("jq_jobs"); return d?JSON.parse(d):[...SAMPLE]; } catch(e){ return [...SAMPLE]; } }
+
+function showLocalApp() {
+  hide("loading");
+  hide("auth-screen");
+  jobs = localLoad();
+  // Fake user object for local mode
+  currentUser = { uid: "local", email: "local@device", displayName: "Local User" };
+  const a = document.getElementById("app-screen");
+  a.style.display = "flex"; a.classList.add("on");
+  document.getElementById("avatar").textContent = "ME";
+  document.getElementById("pmenu-email").textContent = "Saved locally on this device";
+  document.getElementById("btn-export").style.display = "flex";
+  document.getElementById("btn-add").style.display = "flex";
+  setSyncStatus("ok", "Saved locally");
+  renderAll();
+}
+
 async function initFB() {
-  if (DEMO) { jobs=[...SAMPLE]; return; }
-  const timeout = setTimeout(() => { hide("loading"); showAuth(); }, 8000);
-  try {
-    const {initializeApp} = await import("https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js");
-    const {getAuth,onAuthStateChanged:oac,...authMod} = await import("https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js");
-    const {getFirestore,...fsMod} = await import("https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js");
-    window._authMod = authMod; window._fsMod = fsMod;
-    const app = initializeApp(FB);
-    auth = getAuth(app); db = getFirestore(app);
-    oac(auth, user => {
-      clearTimeout(timeout);
-      hide("loading");
-      if (user) { currentUser=user; showApp(user); }
-      else showAuth();
-    });
-  } catch(e) {
-    clearTimeout(timeout);
-    console.error("Firebase init error:", e);
-    hide("loading");
-    showAuth();
-  }
+  showLocalApp();
 }
 
 function showAuth() { gs("auth-screen","flex"); gs("app-screen","none"); gs("app-screen").classList.remove("on"); }
@@ -488,17 +490,17 @@ function setSyncStatus(cls,txt) {
 }
 
 async function addJob(data) {
-  if(DEMO){jobs.push({...data,id:"d"+Date.now()});renderAll();return;}
+  if(DEMO||LOCAL){jobs.push({...data,id:"d"+Date.now()});localSave();renderAll();return;}
   const {collection,addDoc,serverTimestamp}=window._fsMod;
   await addDoc(collection(db,`users/${currentUser.uid}/jobs`),{...data,createdAt:serverTimestamp()});
 }
 async function updateJob(id,data) {
-  if(DEMO){jobs=jobs.map(j=>j.id===id?{...data,id}:j);renderAll();return;}
+  if(DEMO||LOCAL){jobs=jobs.map(j=>j.id===id?{...data,id}:j);localSave();renderAll();return;}
   const {doc,updateDoc}=window._fsMod;
   await updateDoc(doc(db,`users/${currentUser.uid}/jobs/${id}`),data);
 }
 async function deleteJob(id) {
-  if(DEMO){jobs=jobs.filter(j=>j.id!==id);renderAll();return;}
+  if(DEMO||LOCAL){jobs=jobs.filter(j=>j.id!==id);localSave();renderAll();return;}
   const {doc,deleteDoc}=window._fsMod;
   await deleteDoc(doc(db,`users/${currentUser.uid}/jobs/${id}`));
 }
@@ -513,7 +515,7 @@ window.switchTab=(tab)=>{
 function aerr(msg){const e=document.getElementById("aerr");e.textContent=msg;e.classList.add("show");}
 
 window.doLogin=async()=>{
-  if(DEMO)return toast("Demo mode — add Firebase config to enable login","info");
+  if(DEMO||LOCAL)return toast("Running locally — no login needed. Data saved to this browser.","info");
   const em=document.getElementById("lemail").value.trim(),pw=document.getElementById("lpass").value;
   if(!em||!pw)return aerr("Fill in all fields.");
   try{ document.querySelector("#lform .auth-btn").disabled=true;
@@ -521,7 +523,7 @@ window.doLogin=async()=>{
   }catch(e){document.querySelector("#lform .auth-btn").disabled=false;aerr(e.code==="auth/invalid-credential"?"Invalid email or password.":e.message);}
 };
 window.doSignup=async()=>{
-  if(DEMO)return toast("Demo mode — add Firebase config","info");
+  if(DEMO||LOCAL)return toast("Running locally — data is saved in this browser.","info");
   const nm=document.getElementById("sname").value.trim(),em=document.getElementById("semail").value.trim(),pw=document.getElementById("spass").value;
   if(!nm||!em||!pw)return aerr("Fill in all fields.");
   if(pw.length<6)return aerr("Password must be 6+ characters.");
@@ -531,12 +533,12 @@ window.doSignup=async()=>{
   }catch(e){document.querySelector("#sform .auth-btn").disabled=false;aerr(e.code==="auth/email-already-in-use"?"Email already in use.":e.message);}
 };
 window.doGoogle=async()=>{
-  if(DEMO)return toast("Demo mode — add Firebase config","info");
+  if(DEMO||LOCAL)return toast("Running locally — data is saved in this browser.","info");
   try{const p=new window._authMod.GoogleAuthProvider();await window._authMod.signInWithPopup(auth,p);}catch(e){aerr(e.message);}
 };
 window.doLogout=async()=>{
   closePmenu();
-  if(DEMO){showAuth();document.getElementById("app-screen").classList.remove("on");return;}
+  if(DEMO||LOCAL){showAuth();document.getElementById("app-screen").classList.remove("on");return;}
   if(unsub)unsub();
   await window._authMod.signOut(auth);
 };
@@ -675,7 +677,7 @@ window.toggleNotif=(jid,en)=>{
   if(en&&(!j.interviewDate||!j.interviewTime))return toast("Set Interview Date & Time first!","error");
   notifMap[jid]=en;
   if(en){
-    const req=()=>{const dt=new Date(`${j.interviewDate}T${j.interviewTime}`),ms=dt-30*60*1000-Date.now();if(ms>0){setTimeout(()=>{try{new Notification(`⏰ Interview in 30 min!`,{body:`${j.company} — ${j.role}`);}catch(e){}},ms);toast(`🔔 Reminder set for ${j.company}!`);}else{toast("Interview time passed","info");notifMap[jid]=false;}};
+    const req=()=>{const dt=new Date(`${j.interviewDate}T${j.interviewTime}`),ms=dt-30*60*1000-Date.now();if(ms>0){setTimeout(()=>{try{new Notification(`⏰ Interview in 30 min!`,{body:`${j.company} — ${j.role}`});}catch(e){}},ms);toast(`🔔 Reminder set for ${j.company}!`);}else{toast("Interview time passed","info");notifMap[jid]=false;}};
     Notification.requestPermission().then(p=>p==="granted"?req():(toast("Notifications denied","error"),notifMap[jid]=false));
   }else toast("🔕 Reminder off","info");
   renderAll();
@@ -807,19 +809,29 @@ window.confirmDel=id=>{
 };
 
 // EXPORT
-window.exportExcel=()=>{
-  closePmenu();
-  const XLSX=window.XLSX;if(!XLSX)return toast("Loading...","info");
+function doExcelExport(){
+  const XLSX=window.XLSX;
   const hdrs=["Sl. No","Company","Role","Job Description","Experience","HR Name","Contact","Mail ID","Client","Salary","Resume Edited","Resume Link","Contacted On","Follow-up","Interview Date","Interview Time","Interview Mode","Status","Remarks","Interview Questions"];
-  const rows=jobs.map((j,i)=>[i+1,j.company,j.role,j.jobDescription,j.experience,j.hrName,j.contactNumber,j.mailId,j.client,j.salaryOffering,j.resumeEdited,j.resumeLink,j.mailContactedOn,j.followUpOn,j.interviewDate,j.interviewTime,j.interviewMode,j.status,j.remarks,(j.interviewQuestions||"").replace(/\n/g," | ")]);
+  const rows=jobs.map((j,i)=>[i+1,j.company||"",j.role||"",j.jobDescription||"",j.experience||"",j.hrName||"",j.contactNumber||"",j.mailId||"",j.client||"",j.salaryOffering||"",j.resumeEdited||"",j.resumeLink||"",j.mailContactedOn||"",j.followUpOn||"",j.interviewDate||"",j.interviewTime||"",j.interviewMode||"",j.status||"",j.remarks||"",(j.interviewQuestions||"").replace(/\n/g," | ")]);
   const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([hdrs,...rows]);
   ws["!cols"]=[{wch:5},{wch:22},{wch:20},{wch:32},{wch:12},{wch:18},{wch:18},{wch:28},{wch:14},{wch:14},{wch:16},{wch:36},{wch:18},{wch:14},{wch:16},{wch:14},{wch:18},{wch:22},{wch:24},{wch:48}];
-  ws["!freeze"]={xSplit:0,ySplit:1};
+  ws["!sheetViews"]=[{state:"frozen",ySplit:1,topLeftCell:"A2",activeCell:"A2",sqref:"A2"}];
   XLSX.utils.book_append_sheet(wb,ws,"Job Applications");
-  const ws2=XLSX.utils.aoa_to_sheet([["Summary",""],["Total",jobs.length],...STATUSES.map(s=>[s,jobs.filter(j=>j.status===s).length]),["Exported",new Date().toLocaleString()]]);
+  const ws2=XLSX.utils.aoa_to_sheet([["Job Tracker — Summary",""],[""],[" Total Applications",jobs.length],...STATUSES.map(s=>[" "+s,jobs.filter(j=>j.status===s).length]),[""],[" Exported On",new Date().toLocaleString()]]);
+  ws2["!cols"]=[{wch:30},{wch:16}];
   XLSX.utils.book_append_sheet(wb,ws2,"Summary");
   XLSX.writeFile(wb,`JobQuest_${new Date().toISOString().split("T")[0]}.xlsx`);
-  toast("📊 Exported!");
+  toast("📊 Exported to Excel!");
+}
+window.exportExcel=()=>{
+  closePmenu();
+  if(window.XLSX){doExcelExport();return;}
+  toast("Preparing export...","info");
+  const s=document.createElement("script");
+  s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+  s.onload=()=>doExcelExport();
+  s.onerror=()=>toast("Could not load Excel library. Check your internet connection.","error");
+  document.head.appendChild(s);
 };
 
 // HELPERS
@@ -844,23 +856,8 @@ document.getElementById("pwa-manifest").href=URL.createObjectURL(new Blob([JSON.
 
 // BOOTSTRAP
 async function boot(){
-  await initFB();
-  if(DEMO){
-    document.getElementById("loading").style.display="none";
-    document.getElementById("auth-screen").style.display="none";
-    const a=document.getElementById("app-screen");a.style.display="flex";a.classList.add("on");
-    document.getElementById("avatar").textContent="D";
-    document.getElementById("hdr-sub").textContent="Demo Mode";
-    document.getElementById("pmenu-email").textContent="demo@jobquest.app";
-    document.getElementById("btn-export").style.display="flex";
-    document.getElementById("btn-add").style.display="flex";
-    setSyncStatus("","Demo mode");
-    const banner=document.createElement("div");
-    banner.className="dbanner";
-    banner.innerHTML=`🔧 <strong>Demo Mode</strong> — Replace <code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:4px">REPLACE_WITH_YOUR_API_KEY</code> in this file's FIREBASE CONFIG section to enable cloud sync & real login. <a href="https://firebase.google.com/docs/web/setup" target="_blank" style="color:#fff;text-decoration:underline">Setup guide →</a>`;
-    document.getElementById("main").prepend(banner);
-    renderAll();
-  }
+  try { await initFB(); }
+  catch(e){ console.error("Boot error:",e); showLocalApp(); }
 }
 boot();
 </script>
