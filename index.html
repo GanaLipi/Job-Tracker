@@ -573,22 +573,16 @@ window.doLogin=async()=>{
     await auth.signInWithEmailAndPassword(em,pw);
   }catch(e){
     document.querySelector("#lform .auth-btn").disabled=false;
-    if(e.code==="auth/wrong-password"){
-      aerr("Incorrect password. Please try again.");
-    } else {
-      // For any other error (including invalid-credential), check if email exists
-      const em2=document.getElementById("lemail").value.trim();
-      auth.fetchSignInMethodsForEmail(em2).then(methods=>{
-        if(!methods || methods.length===0){
-          // Email not registered — redirect to signup
-          document.getElementById("semail").value=em2;
-          switchTab("signup");
-          aerr("No account found for this email. Please sign up!");
-        } else {
-          aerr("Incorrect password. Please try again.");
-        }
-      }).catch(()=>aerr("Sign in failed. Please try again."));
-    }
+    const em2=document.getElementById("lemail").value.trim();
+    auth.fetchSignInMethodsForEmail(em2).then(methods=>{
+      if(!methods || methods.length===0){
+        document.getElementById("semail").value=em2;
+        switchTab("signup");
+        aerr("Login details are not present. Please sign up to continue!");
+      } else {
+        aerr("Check your Email or Password and try again.");
+      }
+    }).catch(()=>aerr("Check your Email or Password and try again."));
   }
 };
 window.doSignup=async()=>{
@@ -599,7 +593,7 @@ window.doSignup=async()=>{
   try{ document.querySelector("#sform .auth-btn").disabled=true;
     const cred=await auth.createUserWithEmailAndPassword(em,pw);
     await cred.user.updateProfile({displayName:nm});
-  }catch(e){document.querySelector("#sform .auth-btn").disabled=false;aerr(e.code==="auth/email-already-in-use"?"Email already in use.":e.message);}
+  }catch(e){document.querySelector("#sform .auth-btn").disabled=false;aerr(e.code==="auth/email-already-in-use"?"This email is already registered. Please Sign In instead.":"Something went wrong. Please try again.");}
 };
 window.doGoogle=async()=>{
   if(LOCAL)return toast("Running locally — data saved in this browser.","info");
