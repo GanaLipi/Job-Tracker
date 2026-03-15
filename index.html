@@ -577,21 +577,33 @@ window.doLogin=async()=>{
   if(!em||!pw)return aerr("Fill in all fields.");
   const btn=document.querySelector("#lform .auth-btn");
   btn.disabled=true;
+
+  // Step 1: Check Firestore if email is registered
+  let emailExists = null;
   try {
-    // Check Firestore if email is registered
-    const doc = await db.collection("registeredEmails").doc(btoa(em)).get();
-    if(!doc.exists){
-      btn.disabled=false;
-      document.getElementById("semail").value=em;
-      switchTab("signup");
-      aerr("Login details are not present. Please sign up to continue!");
-      return;
-    }
-    // Email exists — attempt login
+    const snap = await db.collection("registeredEmails").doc(btoa(em)).get();
+    emailExists = snap.exists;
+  } catch(err) {
+    // Firestore check failed — fall through to login attempt
+    emailExists = null;
+  }
+
+  // Step 2: If we know email is not registered, go to signup
+  if(emailExists === false){
+    btn.disabled=false;
+    document.getElementById("semail").value=em;
+    switchTab("signup");
+    aerr("Login details are not present. Please sign up to continue!");
+    return;
+  }
+
+  // Step 3: Attempt login
+  try {
     await auth.signInWithEmailAndPassword(em,pw);
   } catch(e){
     btn.disabled=false;
-    if(e.code==="auth/user-not-found"){
+    const noAccount = e.code==="auth/user-not-found";
+    if(noAccount){
       document.getElementById("semail").value=em;
       switchTab("signup");
       aerr("Login details are not present. Please sign up to continue!");
