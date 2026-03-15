@@ -994,6 +994,25 @@ async function boot(){
   catch(e){ console.error("Boot error:",e); showLocalApp(); }
 }
 boot();
+
+// Clear all auth fields + reset password visibility when user leaves the page
+function clearAuthFields(){
+  ["lemail","lpass","sname","semail","spass"].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value="";
+  });
+  ["lpass","spass"].forEach(id=>{const el=document.getElementById(id);if(el)el.type="password";});
+  const le=document.getElementById("lpasseye"); if(le) le.textContent="👁";
+  const se=document.getElementById("spasseye"); if(se) se.textContent="👁";
+  wrongAttempts=0;
+  const fb=document.getElementById("forgot-btn"); if(fb) fb.classList.remove("show");
+  const aerrEl=document.getElementById("aerr");
+  if(aerrEl){aerrEl.classList.remove("show");aerrEl.style.background="";aerrEl.style.borderColor="";aerrEl.style.color="";}
+}
+
+// Fire when user switches tabs, minimises app, or navigates away
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden") clearAuthFields(); });
+window.addEventListener("pagehide", clearAuthFields);
+window.addEventListener("blur", clearAuthFields);
 </script>
 </body>
 </html>
