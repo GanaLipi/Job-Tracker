@@ -256,6 +256,25 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
   </div>
 </div>
 
+<!-- EMAIL VERIFICATION SCREEN -->
+<div id="verify-screen" style="display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:radial-gradient(ellipse at top,#1E293B,#0F172A)">
+  <div class="auth-card" style="text-align:center">
+    <div id="verify-icon" style="font-size:52px;margin-bottom:16px">📧</div>
+    <div id="verify-title" class="auth-title">Verify Your Email</div>
+    <div id="verify-subtitle" style="font-size:13px;color:#64748B;margin:10px 0 22px;line-height:1.6">We've sent a verification link to<br><strong id="verify-email" style="color:#38BDF8"></strong><br>Please check your inbox and click the link.</div>
+    <div id="verify-actions">
+      <button class="auth-btn" onclick="window.checkVerified()" style="margin-bottom:12px">✅ I've Verified — Continue</button>
+      <button onclick="window.resendVerification()" style="width:100%;padding:11px;border-radius:11px;border:1px solid #334155;background:transparent;color:#94A3B8;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:12px">🔁 Resend Verification Email</button>
+      <button onclick="window.doLogout()" style="width:100%;padding:11px;border-radius:11px;border:none;background:transparent;color:#475569;font-size:12px;cursor:pointer;font-family:inherit">← Back to Sign In</button>
+    </div>
+    <div id="verify-success" style="display:none">
+      <div style="font-size:14px;color:#4ADE80;font-weight:600;margin-bottom:18px">Your email has been verified successfully!</div>
+      <button class="auth-btn" onclick="window.doLogout()" style="margin-bottom:0">🔐 Go to Sign In</button>
+    </div>
+    <div id="verify-msg" style="margin-top:12px;font-size:12px;color:#4ADE80;display:none"></div>
+  </div>
+</div>
+
 <!-- APP -->
 <div id="app-screen">
   <header class="hdr">
@@ -519,8 +538,14 @@ function startFirebase() {
     db   = firebase.firestore();
     auth.onAuthStateChanged(user => {
       hide("loading");
-      if (user) { currentUser = user; showApp(user); }
-      else       { showAuth(); }
+      if (user) {
+        currentUser = user;
+        if(!user.emailVerified && !user.providerData.some(p=>p.providerId==="google.com")){
+          showVerifyScreen(user);
+        } else {
+          showApp(user);
+        }
+      } else { showAuth(); }
     });
   } catch(e) {
     console.error("Firebase init error:", e);
@@ -529,7 +554,19 @@ function startFirebase() {
   }
 }
 
-function showAuth() { gs("auth-screen","flex"); gs("app-screen","none"); gs("app-screen").classList.remove("on"); }
+function showAuth() {
+  gs("auth-screen","flex");
+  gs("verify-screen","none");
+  gs("app-screen","none");
+  gs("app-screen").classList.remove("on");
+}
+function showVerifyScreen(user){
+  gs("auth-screen","none");
+  gs("app-screen","none");
+  gs("app-screen").classList.remove("on");
+  document.getElementById("verify-email").textContent = user.email;
+  document.getElementById("verify-screen").style.display="flex";
+}
 function showApp(user) {
   gs("auth-screen","none");
   const a=document.getElementById("app-screen"); a.style.display="flex"; a.classList.add("on");
@@ -662,10 +699,46 @@ window.doSignup=async()=>{
   try{ document.querySelector("#sform .auth-btn").disabled=true;
     const cred=await auth.createUserWithEmailAndPassword(em,pw);
     await cred.user.updateProfile({displayName:nm});
-    // Store email so we can check existence during login
     await db.collection("registeredEmails").doc(btoa(em)).set({email:em});
+    await cred.user.sendEmailVerification();
+    showVerifyScreen(cred.user);
   }catch(e){document.querySelector("#sform .auth-btn").disabled=false;aerr(e.code==="auth/email-already-in-use"?"This email is already registered. Please Sign In instead.":"Something went wrong. Please try again.");}
 };
+// Check if user has verified their email
+window.checkVerified=async()=>{
+  if(!currentUser) return;
+  await currentUser.reload();
+  if(currentUser.emailVerified){
+    // Show success state with Sign In button
+    document.getElementById("verify-icon").textContent="✅";
+    document.getElementById("verify-title").textContent="Email Verified!";
+    document.getElementById("verify-subtitle").textContent="Your account is ready.";
+    document.getElementById("verify-actions").style.display="none";
+    document.getElementById("verify-success").style.display="block";
+  } else {
+    const msg=document.getElementById("verify-msg");
+    msg.textContent="❌ Email not verified yet. Please check your inbox.";
+    msg.style.color="#F87171"; msg.style.display="block";
+    setTimeout(()=>msg.style.display="none", 3000);
+  }
+};
+
+window.resendVerification=async()=>{
+  if(!currentUser) return;
+  try{
+    await currentUser.sendEmailVerification();
+    const msg=document.getElementById("verify-msg");
+    msg.textContent="✅ Verification email resent! Check your inbox.";
+    msg.style.color="#4ADE80"; msg.style.display="block";
+    setTimeout(()=>msg.style.display="none", 3000);
+  }catch(e){
+    const msg=document.getElementById("verify-msg");
+    msg.textContent="Too many requests. Please wait a moment.";
+    msg.style.color="#F87171"; msg.style.display="block";
+    setTimeout(()=>msg.style.display="none", 3000);
+  }
+};
+
 window.doGoogle=async()=>{
   if(LOCAL)return toast("Running locally — data saved in this browser.","info");
   try{const p=new firebase.auth.GoogleAuthProvider();await auth.signInWithPopup(p);}catch(e){if(e.code!=="auth/popup-closed-by-user")aerr("Google sign-in failed. Please try again.");}
