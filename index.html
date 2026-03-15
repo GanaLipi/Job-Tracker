@@ -995,6 +995,17 @@ async function boot(){
 }
 boot();
 
+// Enter key navigation for auth fields
+document.addEventListener("keydown", e => {
+  if(e.key !== "Enter") return;
+  const id = document.activeElement?.id;
+  // Sign In: email → password (stop, don't submit)
+  if(id === "lemail"){ e.preventDefault(); document.getElementById("lpass").focus(); }
+  // Sign Up: name → email → password (stop, don't submit)
+  else if(id === "sname"){ e.preventDefault(); document.getElementById("semail").focus(); }
+  else if(id === "semail"){ e.preventDefault(); document.getElementById("spass").focus(); }
+});
+
 // Clear all auth fields + reset password visibility when user leaves the page
 function clearAuthFields(){
   ["lemail","lpass","sname","semail","spass"].forEach(id=>{
