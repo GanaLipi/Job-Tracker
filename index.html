@@ -582,21 +582,17 @@ window.doLogin=async()=>{
     await auth.signInWithEmailAndPassword(em,pw);
   } catch(e){
     btn.disabled=false;
-    console.log("LOGIN ERROR CODE:", e.code, "MESSAGE:", e.message);
-    // Probe email existence using sendPasswordResetEmail
-    try {
-      await auth.sendPasswordResetEmail(em);
-      // Success = email exists = wrong password
+    // auth/user-not-found = email not registered (only works when Email Enumeration Protection is OFF in Firebase Console)
+    // auth/wrong-password = correct email, wrong password
+    // auth/invalid-login-credentials = generic (Email Enumeration Protection is ON — turn it OFF)
+    if(e.code==="auth/user-not-found"){
+      document.getElementById("semail").value=em;
+      switchTab("signup");
+      aerr("Login details are not present. Please sign up to continue!");
+    } else if(e.code==="auth/wrong-password"){
       aerr("Check your Email or Password and try again.");
-    } catch(probeErr){
-      console.log("PROBE ERROR CODE:", probeErr.code, "MESSAGE:", probeErr.message);
-      if(probeErr.code==="auth/user-not-found" || probeErr.code==="auth/invalid-email"){
-        document.getElementById("semail").value=em;
-        switchTab("signup");
-        aerr("Login details are not present. Please sign up to continue!");
-      } else {
-        aerr("Check your Email or Password and try again.");
-      }
+    } else {
+      aerr("Check your Email or Password and try again.");
     }
   }
 };
