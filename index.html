@@ -38,6 +38,13 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
 .google-btn{width:100%;padding:11px;border-radius:11px;border:1px solid #334155;background:#1E293B;color:#E2E8F0;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:9px}
 .auth-err{background:#450A0A;border:1px solid #7F1D1D;border-radius:9px;padding:9px 13px;color:#FCA5A5;font-size:12px;margin-bottom:12px;display:none}
 .auth-err.show{display:block}
+.pw-wrap{position:relative}
+.pw-wrap input{padding-right:44px;width:100%;box-sizing:border-box}
+.pw-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#64748B;font-size:16px;padding:4px;line-height:1}
+.pw-eye:hover{color:#E2E8F0}
+.forgot-btn{display:none;width:100%;margin-top:10px;padding:10px;border-radius:11px;border:1px solid #334155;background:transparent;color:#38BDF8;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s}
+.forgot-btn:hover{background:#1E293B}
+.forgot-btn.show{display:block}
 
 /* APP */
 #app-screen{display:none;flex-direction:column;min-height:100vh}
@@ -221,13 +228,24 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
     <div id="aerr" class="auth-err"></div>
     <div id="lform">
       <div class="fg"><label>Email</label><input type="email" id="lemail" placeholder="you@example.com" autocomplete="off"/></div>
-      <div class="fg"><label>Password</label><input type="password" id="lpass" placeholder="••••••••" autocomplete="off"/></div>
+      <div class="fg"><label>Password</label>
+        <div class="pw-wrap">
+          <input type="password" id="lpass" placeholder="••••••••" autocomplete="off"/>
+          <button type="button" class="pw-eye" onclick="togglePw('lpass','lpasseye')" id="lpasseye">👁</button>
+        </div>
+      </div>
       <button class="auth-btn" onclick="doLogin()">Sign In →</button>
+      <button class="forgot-btn" id="forgot-btn" onclick="doForgot()">🔑 Forgot Password?</button>
     </div>
     <div id="sform" style="display:none">
       <div class="fg"><label>Full Name</label><input type="text" id="sname" placeholder="Your Name" autocomplete="off"/></div>
       <div class="fg"><label>Email</label><input type="email" id="semail" placeholder="you@example.com" autocomplete="off"/></div>
-      <div class="fg"><label>Password</label><input type="password" id="spass" placeholder="Min 6 characters" autocomplete="off"/></div>
+      <div class="fg"><label>Password</label>
+        <div class="pw-wrap">
+          <input type="password" id="spass" placeholder="Min 6 characters" autocomplete="off"/>
+          <button type="button" class="pw-eye" onclick="togglePw('spass','spasseye')" id="spasseye">👁</button>
+        </div>
+      </div>
       <button class="auth-btn" onclick="doSignup()">Create Account →</button>
     </div>
     <div class="auth-divider">or</div>
@@ -567,9 +585,45 @@ window.switchTab=(tab)=>{
       const el=document.getElementById(id); if(el) el.value="";
     });
     document.querySelectorAll(".auth-btn").forEach(b=>b.disabled=false);
+    // Reset password eyes
+    ["lpass","spass"].forEach(id=>{const el=document.getElementById(id);if(el)el.type="password";});
+    document.getElementById("lpasseye").textContent="👁";
+    document.getElementById("spasseye").textContent="👁";
+    // Reset wrong attempts and hide forgot button
+    wrongAttempts=0;
+    document.getElementById("forgot-btn").classList.remove("show");
+    const aerrEl=document.getElementById("aerr");
+    aerrEl.style.background="";aerrEl.style.borderColor="";aerrEl.style.color="";
   }, 50);
 };
 function aerr(msg){const e=document.getElementById("aerr");e.textContent=msg;e.classList.add("show");}
+
+// Password visibility toggle
+window.togglePw=(inputId,btnId)=>{
+  const inp=document.getElementById(inputId);
+  const btn=document.getElementById(btnId);
+  if(inp.type==="password"){inp.type="text";btn.textContent="🙈";}
+  else{inp.type="password";btn.textContent="👁";}
+};
+
+// Wrong password attempt counter
+let wrongAttempts=0;
+
+// Forgot password
+window.doForgot=async()=>{
+  const em=document.getElementById("lemail").value.trim();
+  if(!em)return aerr("Enter your email above first.");
+  try{
+    await auth.sendPasswordResetEmail(em);
+    wrongAttempts=0;
+    document.getElementById("forgot-btn").classList.remove("show");
+    const e=document.getElementById("aerr");
+    e.style.background="#052E16";e.style.borderColor="#166534";e.style.color="#4ADE80";
+    e.textContent="✅ Password reset email sent! Check your inbox.";e.classList.add("show");
+  }catch(err){
+    aerr("Could not send reset email. Check your email address.");
+  }
+};
 
 window.doLogin=async()=>{
   if(LOCAL)return toast("Running locally — data saved in this browser.","info");
@@ -589,10 +643,14 @@ window.doLogin=async()=>{
       document.getElementById("semail").value=em;
       switchTab("signup");
       aerr("Login details are not present. Please sign up to continue!");
-    } else if(e.code==="auth/wrong-password"){
-      aerr("Check your Email or Password and try again.");
     } else {
-      aerr("Check your Email or Password and try again.");
+      wrongAttempts++;
+      if(wrongAttempts>=3){
+        document.getElementById("forgot-btn").classList.add("show");
+        aerr("Check your Email or Password and try again. (Tap 'Forgot Password?' below to reset)");
+      } else {
+        aerr("Check your Email or Password and try again.");
+      }
     }
   }
 };
