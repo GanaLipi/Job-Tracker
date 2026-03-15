@@ -230,7 +230,7 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
       <div class="fg"><label>Email</label><input type="email" id="lemail" placeholder="you@example.com" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('lpass').focus();}"/></div>
       <div class="fg"><label>Password</label>
         <div class="pw-wrap">
-          <input type="password" id="lpass" placeholder="••••••••" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();doLogin();}"/>
+          <input type="password" id="lpass" placeholder="••••••••" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();window.doLogin();}"/>
           <button type="button" class="pw-eye" onclick="togglePw('lpass','lpasseye')" id="lpasseye">👁</button>
         </div>
       </div>
@@ -242,7 +242,7 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
       <div class="fg"><label>Email</label><input type="email" id="semail" placeholder="you@example.com" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('spass').focus();}"/></div>
       <div class="fg"><label>Password</label>
         <div class="pw-wrap">
-          <input type="password" id="spass" placeholder="Min 6 characters" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();doSignup();}"/>
+          <input type="password" id="spass" placeholder="Min 6 characters" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();window.doSignup();}"/>
           <button type="button" class="pw-eye" onclick="togglePw('spass','spasseye')" id="spasseye">👁</button>
         </div>
       </div>
