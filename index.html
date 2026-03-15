@@ -220,14 +220,14 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
     </div>
     <div id="aerr" class="auth-err"></div>
     <div id="lform">
-      <div class="fg"><label>Email</label><input type="email" id="lemail" placeholder="you@example.com" autocomplete="email"/></div>
-      <div class="fg"><label>Password</label><input type="password" id="lpass" placeholder="••••••••" autocomplete="current-password"/></div>
+      <div class="fg"><label>Email</label><input type="email" id="lemail" placeholder="you@example.com" autocomplete="off"/></div>
+      <div class="fg"><label>Password</label><input type="password" id="lpass" placeholder="••••••••" autocomplete="off"/></div>
       <button class="auth-btn" onclick="doLogin()">Sign In →</button>
     </div>
     <div id="sform" style="display:none">
-      <div class="fg"><label>Full Name</label><input type="text" id="sname" placeholder="Your Name" autocomplete="name"/></div>
-      <div class="fg"><label>Email</label><input type="email" id="semail" placeholder="you@example.com" autocomplete="email"/></div>
-      <div class="fg"><label>Password</label><input type="password" id="spass" placeholder="Min 6 characters" autocomplete="new-password"/></div>
+      <div class="fg"><label>Full Name</label><input type="text" id="sname" placeholder="Your Name" autocomplete="off"/></div>
+      <div class="fg"><label>Email</label><input type="email" id="semail" placeholder="you@example.com" autocomplete="off"/></div>
+      <div class="fg"><label>Password</label><input type="password" id="spass" placeholder="Min 6 characters" autocomplete="off"/></div>
       <button class="auth-btn" onclick="doSignup()">Create Account →</button>
     </div>
     <div class="auth-divider">or</div>
@@ -562,12 +562,13 @@ window.switchTab=(tab)=>{
   document.getElementById("lform").style.display=tab==="login"?"block":"none";
   document.getElementById("sform").style.display=tab==="signup"?"block":"none";
   document.getElementById("aerr").classList.remove("show");
-  // Clear all fields on tab switch
-  ["lemail","lpass","sname","semail","spass"].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.value="";
-  });
-  // Re-enable buttons
-  document.querySelectorAll(".auth-btn").forEach(b=>b.disabled=false);
+  // Clear all fields on tab switch (timeout beats browser autocomplete)
+  setTimeout(()=>{
+    ["lemail","lpass","sname","semail","spass"].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value="";
+    });
+    document.querySelectorAll(".auth-btn").forEach(b=>b.disabled=false);
+  }, 50);
 };
 function aerr(msg){const e=document.getElementById("aerr");e.textContent=msg;e.classList.add("show");}
 
