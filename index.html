@@ -578,17 +578,23 @@ window.doLogin=async()=>{
   const btn=document.querySelector("#lform .auth-btn");
   btn.disabled=true;
   try {
-    await auth.signInWithEmailAndPassword(em,pw);
-  } catch(e){
-    btn.disabled=false;
-    const noAccount = e.code==="auth/user-not-found" || e.code==="auth/invalid-email";
-    const wrongPass  = e.code==="auth/wrong-password" || e.code==="auth/invalid-credential" || e.code==="auth/invalid-login-credentials";
-    if(noAccount){
+    // Check Firestore if email is registered
+    const doc = await db.collection("registeredEmails").doc(btoa(em)).get();
+    if(!doc.exists){
+      btn.disabled=false;
       document.getElementById("semail").value=em;
       switchTab("signup");
       aerr("Login details are not present. Please sign up to continue!");
-    } else if(wrongPass){
-      aerr("Check your Email or Password and try again.");
+      return;
+    }
+    // Email exists — attempt login
+    await auth.signInWithEmailAndPassword(em,pw);
+  } catch(e){
+    btn.disabled=false;
+    if(e.code==="auth/user-not-found"){
+      document.getElementById("semail").value=em;
+      switchTab("signup");
+      aerr("Login details are not present. Please sign up to continue!");
     } else {
       aerr("Check your Email or Password and try again.");
     }
@@ -602,6 +608,8 @@ window.doSignup=async()=>{
   try{ document.querySelector("#sform .auth-btn").disabled=true;
     const cred=await auth.createUserWithEmailAndPassword(em,pw);
     await cred.user.updateProfile({displayName:nm});
+    // Store email so we can check existence during login
+    await db.collection("registeredEmails").doc(btoa(em)).set({email:em});
   }catch(e){document.querySelector("#sform .auth-btn").disabled=false;aerr(e.code==="auth/email-already-in-use"?"This email is already registered. Please Sign In instead.":"Something went wrong. Please try again.");}
 };
 window.doGoogle=async()=>{
