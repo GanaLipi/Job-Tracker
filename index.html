@@ -569,20 +569,24 @@ window.doLogin=async()=>{
   if(LOCAL)return toast("Running locally — data saved in this browser.","info");
   const em=document.getElementById("lemail").value.trim(),pw=document.getElementById("lpass").value;
   if(!em||!pw)return aerr("Fill in all fields.");
-  try{ document.querySelector("#lform .auth-btn").disabled=true;
+  const btn=document.querySelector("#lform .auth-btn");
+  btn.disabled=true;
+  try {
+    // First check if email exists
+    const methods = await auth.fetchSignInMethodsForEmail(em);
+    if(!methods || methods.length===0){
+      // Email not registered — go to signup
+      btn.disabled=false;
+      document.getElementById("semail").value=em;
+      switchTab("signup");
+      aerr("Login details are not present. Please sign up to continue!");
+      return;
+    }
+    // Email exists — attempt login
     await auth.signInWithEmailAndPassword(em,pw);
-  }catch(e){
-    document.querySelector("#lform .auth-btn").disabled=false;
-    const em2=document.getElementById("lemail").value.trim();
-    auth.fetchSignInMethodsForEmail(em2).then(methods=>{
-      if(!methods || methods.length===0){
-        document.getElementById("semail").value=em2;
-        switchTab("signup");
-        aerr("Login details are not present. Please sign up to continue!");
-      } else {
-        aerr("Check your Email or Password and try again.");
-      }
-    }).catch(()=>aerr("Check your Email or Password and try again."));
+  } catch(e){
+    btn.disabled=false;
+    aerr("Check your Email or Password and try again.");
   }
 };
 window.doSignup=async()=>{
@@ -597,7 +601,7 @@ window.doSignup=async()=>{
 };
 window.doGoogle=async()=>{
   if(LOCAL)return toast("Running locally — data saved in this browser.","info");
-  try{const p=new firebase.auth.GoogleAuthProvider();await auth.signInWithPopup(p);}catch(e){aerr(e.message);}
+  try{const p=new firebase.auth.GoogleAuthProvider();await auth.signInWithPopup(p);}catch(e){if(e.code!=="auth/popup-closed-by-user")aerr("Google sign-in failed. Please try again.");}
 };
 window.doLogout=async()=>{
   closePmenu();
