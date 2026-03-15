@@ -562,6 +562,12 @@ window.switchTab=(tab)=>{
   document.getElementById("lform").style.display=tab==="login"?"block":"none";
   document.getElementById("sform").style.display=tab==="signup"?"block":"none";
   document.getElementById("aerr").classList.remove("show");
+  // Clear all fields on tab switch
+  ["lemail","lpass","sname","semail","spass"].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value="";
+  });
+  // Re-enable buttons
+  document.querySelectorAll(".auth-btn").forEach(b=>b.disabled=false);
 };
 function aerr(msg){const e=document.getElementById("aerr");e.textContent=msg;e.classList.add("show");}
 
