@@ -583,10 +583,15 @@ window.doLogin=async()=>{
       return;
     }
     // Email exists — attempt login
-    await auth.signInWithEmailAndPassword(em,pw);
+    try {
+      await auth.signInWithEmailAndPassword(em,pw);
+    } catch(loginErr){
+      btn.disabled=false;
+      aerr("Check your Email or Password and try again.");
+    }
   } catch(e){
     btn.disabled=false;
-    aerr("Check your Email or Password and try again.");
+    aerr("Something went wrong. Please try again.");
   }
 };
 window.doSignup=async()=>{
