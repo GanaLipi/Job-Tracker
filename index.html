@@ -572,26 +572,20 @@ window.doLogin=async()=>{
   const btn=document.querySelector("#lform .auth-btn");
   btn.disabled=true;
   try {
-    // First check if email exists
-    const methods = await auth.fetchSignInMethodsForEmail(em);
-    if(!methods || methods.length===0){
-      // Email not registered — go to signup
-      btn.disabled=false;
+    await auth.signInWithEmailAndPassword(em,pw);
+  } catch(e){
+    btn.disabled=false;
+    const noAccount = e.code==="auth/user-not-found" || e.code==="auth/invalid-email";
+    const wrongPass  = e.code==="auth/wrong-password" || e.code==="auth/invalid-credential" || e.code==="auth/invalid-login-credentials";
+    if(noAccount){
       document.getElementById("semail").value=em;
       switchTab("signup");
       aerr("Login details are not present. Please sign up to continue!");
-      return;
-    }
-    // Email exists — attempt login
-    try {
-      await auth.signInWithEmailAndPassword(em,pw);
-    } catch(loginErr){
-      btn.disabled=false;
+    } else if(wrongPass){
+      aerr("Check your Email or Password and try again.");
+    } else {
       aerr("Check your Email or Password and try again.");
     }
-  } catch(e){
-    btn.disabled=false;
-    aerr("Something went wrong. Please try again.");
   }
 };
 window.doSignup=async()=>{
