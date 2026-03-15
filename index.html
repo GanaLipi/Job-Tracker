@@ -582,34 +582,22 @@ window.doLogin=async()=>{
     await auth.signInWithEmailAndPassword(em,pw);
   } catch(e){
     btn.disabled=false;
-    // Use sendPasswordResetEmail to probe if email exists:
-    // - If email exists → it sends (or throws auth/too-many-requests) → wrong password
-    // - If email doesn't exist → throws auth/user-not-found
-    if(e.code==="auth/user-not-found" || e.code==="auth/invalid-email"){
-      document.getElementById("semail").value=em;
-      switchTab("signup");
-      aerr("Login details are not present. Please sign up to continue!");
-      return;
-    }
-    // For generic error (auth/invalid-login-credentials), probe email existence
-    if(e.code==="auth/invalid-login-credentials" || e.code==="auth/invalid-credential"){
-      try {
-        await auth.sendPasswordResetEmail(em);
-        // No error = email exists = wrong password
+    console.log("LOGIN ERROR CODE:", e.code, "MESSAGE:", e.message);
+    // Probe email existence using sendPasswordResetEmail
+    try {
+      await auth.sendPasswordResetEmail(em);
+      // Success = email exists = wrong password
+      aerr("Check your Email or Password and try again.");
+    } catch(probeErr){
+      console.log("PROBE ERROR CODE:", probeErr.code, "MESSAGE:", probeErr.message);
+      if(probeErr.code==="auth/user-not-found" || probeErr.code==="auth/invalid-email"){
+        document.getElementById("semail").value=em;
+        switchTab("signup");
+        aerr("Login details are not present. Please sign up to continue!");
+      } else {
         aerr("Check your Email or Password and try again.");
-      } catch(probeErr){
-        if(probeErr.code==="auth/user-not-found"){
-          document.getElementById("semail").value=em;
-          switchTab("signup");
-          aerr("Login details are not present. Please sign up to continue!");
-        } else {
-          // too-many-requests or other = email exists = wrong password
-          aerr("Check your Email or Password and try again.");
-        }
       }
-      return;
     }
-    aerr("Check your Email or Password and try again.");
   }
 };
 window.doSignup=async()=>{
