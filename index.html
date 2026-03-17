@@ -345,6 +345,7 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
           <th style="width:105px;text-align:center">Follow-up</th>
           <th style="width:155px">Status</th>
           <th style="width:130px">Remarks</th>
+          <th>Location</th>
           <th style="width:185px">Interview Q's / Actions</th>
         </tr></thead>
         <tbody id="tbody"></tbody>
@@ -385,6 +386,7 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
           <div class="fld"><label>Experience</label><input id="fexp" placeholder="e.g. 3-5 Yrs"/></div>
           <div class="fld"><label>Client</label><input id="fcl" placeholder="e.g. HDFC Bank"/></div>
           <div class="fld"><label>Salary</label><input id="fsal" placeholder="e.g. 12 LPA"/></div>
+          <div class="fld"><label>Location</label><input id="floc" placeholder="e.g. Bengaluru, Remote"/></div>
         </div>
         <div class="fld"><label>Job Description</label><textarea id="fjd" rows="3" placeholder="Key skills, tech stack..."></textarea></div>
       </div>
@@ -775,7 +777,7 @@ window.renderAll=()=>{
   const q=(document.getElementById("srch")||{}).value||"";
   const f=jobs.filter(j=>{
     const s=filterSt==="All"||j.status===filterSt;
-    const sq=!q||[j.company,j.role,j.hrName,j.client,j.mailId].some(x=>(x||"").toLowerCase().includes(q.toLowerCase()));
+    const sq=!q||[j.company,j.role,j.hrName,j.client,j.mailId,j.location].some(x=>(x||"").toLowerCase().includes(q.toLowerCase()));
     return s&&sq;
   });
   renderStats(); renderChips(); renderCards(f); renderTable(f);
@@ -812,6 +814,7 @@ function renderCards(f){
         <div class="jcard-meta">
           <span class="sbadge" style="background:${st.bg};color:${st.color}"><span class="dot" style="background:${st.dot}"></span>${j.status}</span>
           ${j.salaryOffering?`<span class="jcard-pill" style="background:#052E16;color:#4ADE80">💰 ${x(j.salaryOffering)}</span>`:""}
+          ${j.location?`<span class="jcard-pill" style="background:#1E293B;color:#94A3B8">📍 ${x(j.location)}</span>`:""}
           ${j.experience?`<span class="jcard-pill" style="background:#0C1A3F;color:#60A5FA">⏱ ${x(j.experience)}</span>`:""}
           ${(j.status==="Interview Scheduled")&&j.interviewDate?`<span class="jcard-pill" style="background:#0C1A3F;color:#BFDBFE">🗓 ${j.interviewDate}${j.interviewTime?" "+fmt12(j.interviewTime):""}</span>`:""}
         </div>
@@ -843,6 +846,7 @@ function renderTable(f){
       <td style="color:#7DD3FC;font-family:'DM Mono',monospace;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x(j.mailId)||"—"}</td>
       <td style="text-align:center;color:#4B5563">${x(j.client)||"—"}</td>
       <td style="text-align:center;color:#4ADE80;font-weight:700">${x(j.salaryOffering)||"—"}</td>
+      <td style="text-align:center;color:#94A3B8">${x(j.location)||"—"}</td>
       <td style="text-align:center">${j.resumeEdited?`<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
         <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:${j.resumeEdited==="Yes"?"#14532D":"#292524"};color:${j.resumeEdited==="Yes"?"#4ADE80":"#78716C"}">${j.resumeEdited}</span>
         ${j.resumeEdited==="Yes"?(j.resumeLink?`<span style="font-size:10px;color:#60A5FA;cursor:pointer" onclick="openView('${j.id}')">📄 Preview</span>`:`<span style="font-size:10px;color:#F87171">⚠️ Missing</span>`):""}
@@ -920,13 +924,13 @@ window.openEdit=id=>{
 // closeForm defined below in back button section
 
 function clearForm(){
-  ["fc","fr","fexp","fcl","fsal","fjd","fhn","fhp","fhm","fcon","ffu","frl","frm","fiq","fid","fit"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  ["fc","fr","fexp","fcl","fsal","floc","fjd","fhn","fhp","fhm","fcon","ffu","frl","frm","fiq","fid","fit"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
   document.getElementById("fres").value="";document.getElementById("fst").value="Under Process";document.getElementById("fim").value="";
   onStChange();onResChange();
 }
 function fillForm(j){
   const s=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||"";};
-  s("fc",j.company);s("fr",j.role);s("fexp",j.experience);s("fcl",j.client);s("fsal",j.salaryOffering);s("fjd",j.jobDescription);
+  s("fc",j.company);s("fr",j.role);s("fexp",j.experience);s("fcl",j.client);s("fsal",j.salaryOffering);s("floc",j.location);s("fjd",j.jobDescription);
   s("fhn",j.hrName);s("fhp",j.contactNumber);s("fhm",j.mailId);
   s("fcon",j.mailContactedOn);s("ffu",j.followUpOn);s("fres",j.resumeEdited);s("frl",j.resumeLink);
   s("fst",j.status);s("frm",j.remarks);s("fiq",j.interviewQuestions);s("fid",j.interviewDate);s("fit",j.interviewTime);s("fim",j.interviewMode);
@@ -934,7 +938,7 @@ function fillForm(j){
 }
 function gf(){
   const g=id=>(document.getElementById(id)||{}).value||"";
-  return {company:g("fc"),role:g("fr"),experience:g("fexp"),client:g("fcl"),salaryOffering:g("fsal"),jobDescription:g("fjd"),hrName:g("fhn"),contactNumber:g("fhp"),mailId:g("fhm"),mailContactedOn:g("fcon"),followUpOn:g("ffu"),resumeEdited:g("fres"),resumeLink:g("frl"),status:g("fst"),remarks:g("frm"),interviewQuestions:g("fiq"),interviewDate:g("fid"),interviewTime:g("fit"),interviewMode:g("fim")};
+  return {company:g("fc"),role:g("fr"),experience:g("fexp"),client:g("fcl"),salaryOffering:g("fsal"),location:g("floc"),jobDescription:g("fjd"),hrName:g("fhn"),contactNumber:g("fhp"),mailId:g("fhm"),mailContactedOn:g("fcon"),followUpOn:g("ffu"),resumeEdited:g("fres"),resumeLink:g("frl"),status:g("fst"),remarks:g("frm"),interviewQuestions:g("fiq"),interviewDate:g("fid"),interviewTime:g("fit"),interviewMode:g("fim")};
 }
 window.onStChange=()=>{
   const s=document.getElementById("fst").value;
@@ -976,6 +980,7 @@ window.openView=id=>{
           <div class="pills">
             ${j.experience?`<div class="ipill" style="background:#38BDF818;border-color:#38BDF830"><span class="pl" style="color:#38BDF8">Exp</span><span class="pv" style="color:#38BDF8">${x(j.experience)}</span></div>`:""}
             ${j.salaryOffering?`<div class="ipill" style="background:#4ADE8018;border-color:#4ADE8030"><span class="pl" style="color:#4ADE80">Salary</span><span class="pv" style="color:#4ADE80">${x(j.salaryOffering)}</span></div>`:""}
+            ${j.location?`<div class="ipill" style="background:#38BDF818;border-color:#38BDF830"><span class="pl" style="color:#38BDF8">Location</span><span class="pv" style="color:#38BDF8">${x(j.location)}</span></div>`:""}
             ${j.mailContactedOn?`<div class="ipill" style="background:#F59E0B18;border-color:#F59E0B30"><span class="pl" style="color:#F59E0B">Contacted</span><span class="pv" style="color:#F59E0B">${j.mailContactedOn}</span></div>`:""}
             ${j.followUpOn?`<div class="ipill" style="background:#C084FC18;border-color:#C084FC30"><span class="pl" style="color:#C084FC">Follow-up</span><span class="pv" style="color:#C084FC">${j.followUpOn}</span></div>`:""}
             ${isIv&&j.interviewDate?`<div class="ipill" style="background:#60A5FA18;border-color:#60A5FA30"><span class="pl" style="color:#60A5FA">Interview</span><span class="pv" style="color:#60A5FA">${j.interviewDate}${j.interviewTime?" · "+fmt12(j.interviewTime):""}</span></div>`:""}
@@ -1038,8 +1043,8 @@ window.confirmDel=id=>{
 // EXPORT
 function doExcelExport(){
   const XLSX=window.XLSX;
-  const hdrs=["Sl. No","Company","Role","Job Description","Experience","HR Name","Contact","Mail ID","Client","Salary","Resume Edited","Resume Link","Contacted On","Follow-up","Interview Date","Interview Time","Interview Mode","Status","Remarks","Interview Questions"];
-  const rows=jobs.map((j,i)=>[i+1,j.company||"",j.role||"",j.jobDescription||"",j.experience||"",j.hrName||"",j.contactNumber||"",j.mailId||"",j.client||"",j.salaryOffering||"",j.resumeEdited||"",j.resumeLink||"",j.mailContactedOn||"",j.followUpOn||"",j.interviewDate||"",j.interviewTime||"",j.interviewMode||"",j.status||"",j.remarks||"",(j.interviewQuestions||"").replace(/\n/g," | ")]);
+  const hdrs=["Sl. No","Company","Role","Job Description","Experience","HR Name","Contact","Mail ID","Client","Salary","Location","Resume Edited","Resume Link","Contacted On","Follow-up","Interview Date","Interview Time","Interview Mode","Status","Remarks","Interview Questions"];
+  const rows=jobs.map((j,i)=>[i+1,j.company||"",j.role||"",j.jobDescription||"",j.experience||"",j.hrName||"",j.contactNumber||"",j.mailId||"",j.client||"",j.salaryOffering||"",j.location||"",j.resumeEdited||"",j.resumeLink||"",j.mailContactedOn||"",j.followUpOn||"",j.interviewDate||"",j.interviewTime||"",j.interviewMode||"",j.status||"",j.remarks||"",(j.interviewQuestions||"").replace(/\n/g," | ")]);
   const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([hdrs,...rows]);
   ws["!cols"]=[{wch:5},{wch:22},{wch:20},{wch:32},{wch:12},{wch:18},{wch:18},{wch:28},{wch:14},{wch:14},{wch:16},{wch:36},{wch:18},{wch:14},{wch:16},{wch:14},{wch:18},{wch:22},{wch:24},{wch:48}];
   ws["!sheetViews"]=[{state:"frozen",ySplit:1,topLeftCell:"A2",activeCell:"A2",sqref:"A2"}];
