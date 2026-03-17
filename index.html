@@ -497,6 +497,12 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
         <div class="fld" style="margin-top:10px"><label>🎯 Interview Questions (one per line)</label>
           <textarea id="fiq" rows="3" placeholder="Explain Virtual DOM?&#10;What is useCallback?"></textarea>
         </div>
+        <div class="cbox" id="feedback-box" style="display:none;margin-top:10px">
+          <div style="font-size:10px;font-weight:700;color:#F87171;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">💬 Rejection Feedback <span style="color:#475569;font-weight:500;text-transform:none;letter-spacing:0">(Optional)</span></div>
+          <div class="fld"><label>Reason / Feedback from HR</label>
+            <textarea id="ffb" rows="3" placeholder="e.g. Looking for more experience in React, will revisit in 6 months..."></textarea>
+          </div>
+        </div>
       </div>
     </div>
     <div class="mfoot">
@@ -985,10 +991,11 @@ window.openEdit=id=>{
 // closeForm defined below in back button section
 
 function clearForm(){
-  ["fc","fr","fexp","fcl","fsal","floc","fjd","fcon","ffu","frl","frm","fiq","fid","fit","favl","favop","frefn","frefp","frefm","frefl","fcpl","favhrn","favhrp","favhrm","fhrn","fhrp","fhrm"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  ["fc","fr","fexp","fcl","fsal","floc","fjd","fcon","ffu","frl","frm","fiq","fid","fit","favl","favop","frefn","frefp","frefm","frefl","fcpl","favhrn","favhrp","favhrm","fhrn","fhrp","fhrm","ffb"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
   ["fav","favh","favo"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
   ["fav-others-box","fav-himself-box","fav-link-box","fav-ref-box","fav-cp-box","fav-hr-box","fav-social-other-box"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
   document.getElementById("hr-details-box").style.display="none";
+  document.getElementById("feedback-box").style.display="none";
   document.getElementById("fres").value="";document.getElementById("fst").value="Applied";document.getElementById("fim").value="";
   onStChange();onResChange();
 }
@@ -1001,12 +1008,12 @@ function fillForm(j){
   s("fhrn",j.hrName);s("fhrp",j.hrPhone);s("fhrm",j.hrEmail);
   onAppliedViaChange();onHimselfChange();onSocialPlatformChange();
   s("fcon",j.mailContactedOn);s("ffu",j.followUpOn);s("fres",j.resumeEdited);s("frl",j.resumeLink);
-  s("fst",j.status);s("frm",j.remarks);s("fiq",j.interviewQuestions);s("fid",j.interviewDate);s("fit",j.interviewTime);s("fim",j.interviewMode);
+  s("fst",j.status);s("frm",j.remarks);s("ffb",j.feedback);s("fiq",j.interviewQuestions);s("fid",j.interviewDate);s("fit",j.interviewTime);s("fim",j.interviewMode);
   onStChange();onResChange();
 }
 function gf(){
   const g=id=>(document.getElementById(id)||{}).value||"";
-  return {company:g("fc"),role:g("fr"),experience:g("fexp"),client:g("fcl"),salaryOffering:g("fsal"),location:g("floc"),jobDescription:g("fjd"),appliedVia:g("fav"),socialPlatform:g("favo"),appliedViaOther:g("favop"),appliedViaLink:g("favl"),himselfHow:g("favh"),refName:g("frefn"),refPhone:g("frefp"),refEmail:g("frefm"),refLinkedIn:g("frefl"),careerPortalLink:g("fcpl"),appliedHrName:g("favhrn"),appliedHrPhone:g("favhrp"),appliedHrEmail:g("favhrm"),hrName:g("fhrn"),hrPhone:g("fhrp"),hrEmail:g("fhrm"),mailContactedOn:g("fcon"),followUpOn:g("ffu"),resumeEdited:g("fres"),resumeLink:g("frl"),status:g("fst"),remarks:g("frm"),interviewQuestions:g("fiq"),interviewDate:g("fid"),interviewTime:g("fit"),interviewMode:g("fim")};
+  return {company:g("fc"),role:g("fr"),experience:g("fexp"),client:g("fcl"),salaryOffering:g("fsal"),location:g("floc"),jobDescription:g("fjd"),appliedVia:g("fav"),socialPlatform:g("favo"),appliedViaOther:g("favop"),appliedViaLink:g("favl"),himselfHow:g("favh"),refName:g("frefn"),refPhone:g("frefp"),refEmail:g("frefm"),refLinkedIn:g("frefl"),careerPortalLink:g("fcpl"),appliedHrName:g("favhrn"),appliedHrPhone:g("favhrp"),appliedHrEmail:g("favhrm"),hrName:g("fhrn"),hrPhone:g("fhrp"),hrEmail:g("fhrm"),mailContactedOn:g("fcon"),followUpOn:g("ffu"),resumeEdited:g("fres"),resumeLink:g("frl"),status:g("fst"),remarks:g("frm"),feedback:g("ffb"),interviewQuestions:g("fiq"),interviewDate:g("fid"),interviewTime:g("fit"),interviewMode:g("fim")};
 }
 window.onAppliedViaChange=()=>{
   const v=document.getElementById("fav").value;
@@ -1037,22 +1044,37 @@ window.onSocialPlatformChange=()=>{
 window.onStChange=()=>{
   const s=document.getElementById("fst").value;
   document.getElementById("iv-box").style.display=(s==="Interview Scheduled"||s==="Interviewed")?"block":"none";
+  document.getElementById("feedback-box").style.display=s==="Rejected"?"block":"none";
   updateHrVisibility();
 };
 
 function needsHrOnStatus(){
-  // Returns true if HR Details should show based on source+status combo
   const via=document.getElementById("fav").value;
   const how=document.getElementById("favh").value;
   const st=document.getElementById("fst").value;
-  const nonApplied=["Under Process","Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
+  // Never show HR Details on direct Applied→Rejected
+  if(st==="Rejected" && editId===null){
+    // New application being added — if status is already Rejected, no HR needed
+    return false;
+  }
+  // Statuses that mean someone actually processed the application
+  const processed=["Under Process","Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
   // Self → HR: always show
   if(via==="Self" && how==="HR") return true;
-  // Social Media, Self→Career Portal, Self→Referral: show only when status != Applied
-  if(via==="Social Media") return nonApplied.includes(st);
-  if(via==="Self" && how==="Career Portal") return nonApplied.includes(st);
-  if(via==="Self" && how==="Referral") return nonApplied.includes(st);
+  // Social Media, Self→Career Portal, Self→Referral: show only when processed
+  if(via==="Social Media") return processed.includes(st) && st!=="Rejected" || _wasProcessed();
+  if(via==="Self" && how==="Career Portal") return processed.includes(st) && st!=="Rejected" || _wasProcessed();
+  if(via==="Self" && how==="Referral") return processed.includes(st) && st!=="Rejected" || _wasProcessed();
   return false;
+}
+
+// Check if existing job record had progressed past Applied before being Rejected
+function _wasProcessed(){
+  if(!editId) return false;
+  const job=jobs.find(j=>j.id===editId);
+  if(!job) return false;
+  const processed=["Under Process","Interview Scheduled","Interviewed","Further Process","Offered"];
+  return processed.includes(job.status) || (job.hrName||job.hrPhone||job.hrEmail);
 }
 
 function updateHrVisibility(){
@@ -1102,6 +1124,7 @@ window.openView=id=>{
             ${j.experience?`<div class="ipill" style="background:#38BDF818;border-color:#38BDF830"><span class="pl" style="color:#38BDF8">Exp</span><span class="pv" style="color:#38BDF8">${x(j.experience)}</span></div>`:""}
             ${j.salaryOffering?`<div class="ipill" style="background:#4ADE8018;border-color:#4ADE8030"><span class="pl" style="color:#4ADE80">Salary</span><span class="pv" style="color:#4ADE80">${x(j.salaryOffering)}</span></div>`:""}
             ${j.location?`<div class="ipill" style="background:#38BDF818;border-color:#38BDF830"><span class="pl" style="color:#38BDF8">Location</span><span class="pv" style="color:#38BDF8">${x(j.location)}</span></div>`:""}
+            ${j.feedback?`<div style="background:#450A0A;border:1px solid #7F1D1D;border-radius:12px;padding:12px 14px;margin-bottom:10px"><div style="font-size:10px;font-weight:700;color:#F87171;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">💬 Rejection Feedback</div><div style="font-size:13px;color:#FCA5A5;line-height:1.6">${x(j.feedback)}</div></div>`:""}
             ${j.appliedVia?`<div class="ipill" style="background:#7DD3FC18;border-color:#7DD3FC30"><span class="pl" style="color:#7DD3FC">Applied Via</span><span class="pv" style="color:#7DD3FC">${x(j.appliedVia)}${j.socialPlatform?" · "+x(j.socialPlatform):""}${j.himselfHow?" · "+x(j.himselfHow):""}</span></div>`:""}
             ${j.hrName?`<div class="ipill" style="background:#38BDF818;border-color:#38BDF830"><span class="pl" style="color:#38BDF8">HR</span><span class="pv" style="color:#38BDF8">${x(j.hrName)}${j.hrPhone?" · "+x(j.hrPhone):""}</span></div>`:""}
             ${j.mailContactedOn?`<div class="ipill" style="background:#F59E0B18;border-color:#F59E0B30"><span class="pl" style="color:#F59E0B">Contacted</span><span class="pv" style="color:#F59E0B">${j.mailContactedOn}</span></div>`:""}
@@ -1163,8 +1186,8 @@ window.confirmDel=id=>{
 // EXPORT
 function doExcelExport(){
   const XLSX=window.XLSX;
-  const hdrs=["Sl. No","Company","Role","Job Description","Experience","Client","Salary","Location","Applied Via","Platform","How","HR Name","HR Phone","HR Email","Ref Name","Ref Phone","Ref Email","Ref LinkedIn","Career Portal Link","Applied HR Name","Applied HR Phone","Applied HR Email","Job Link","Resume Edited","Resume Link","Contacted On","Follow-up","Interview Date","Interview Time","Interview Mode","Status","Remarks","Interview Questions"];
-  const rows=jobs.map((j,i)=>[i+1,j.company||"",j.role||"",j.jobDescription||"",j.experience||"",j.client||"",j.salaryOffering||"",j.location||"",j.appliedVia||"",j.socialPlatform||"",j.himselfHow||"",j.hrName||"",j.hrPhone||"",j.hrEmail||"",j.refName||"",j.refPhone||"",j.refEmail||"",j.refLinkedIn||"",j.careerPortalLink||"",j.appliedHrName||"",j.appliedHrPhone||"",j.appliedHrEmail||"",j.appliedViaLink||"",j.resumeEdited||"",j.resumeLink||"",j.mailContactedOn||"",j.followUpOn||"",j.interviewDate||"",j.interviewTime||"",j.interviewMode||"",j.status||"",j.remarks||"",(j.interviewQuestions||"").replace(/\n/g," | ")]);
+  const hdrs=["Sl. No","Company","Role","Job Description","Experience","Client","Salary","Location","Applied Via","Platform","How","HR Name","HR Phone","HR Email","Ref Name","Ref Phone","Ref Email","Ref LinkedIn","Career Portal Link","Applied HR Name","Applied HR Phone","Applied HR Email","Job Link","Resume Edited","Resume Link","Contacted On","Follow-up","Interview Date","Interview Time","Interview Mode","Status","Remarks","Feedback","Interview Questions"];
+  const rows=jobs.map((j,i)=>[i+1,j.company||"",j.role||"",j.jobDescription||"",j.experience||"",j.client||"",j.salaryOffering||"",j.location||"",j.appliedVia||"",j.socialPlatform||"",j.himselfHow||"",j.hrName||"",j.hrPhone||"",j.hrEmail||"",j.refName||"",j.refPhone||"",j.refEmail||"",j.refLinkedIn||"",j.careerPortalLink||"",j.appliedHrName||"",j.appliedHrPhone||"",j.appliedHrEmail||"",j.appliedViaLink||"",j.resumeEdited||"",j.resumeLink||"",j.mailContactedOn||"",j.followUpOn||"",j.interviewDate||"",j.interviewTime||"",j.interviewMode||"",j.status||"",j.remarks||"",j.feedback||"",(j.interviewQuestions||"").replace(/\n/g," | ")]);
   const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([hdrs,...rows]);
   ws["!cols"]=[{wch:5},{wch:22},{wch:20},{wch:32},{wch:12},{wch:18},{wch:18},{wch:28},{wch:14},{wch:14},{wch:16},{wch:36},{wch:18},{wch:14},{wch:16},{wch:14},{wch:18},{wch:22},{wch:24},{wch:48}];
   ws["!sheetViews"]=[{state:"frozen",ySplit:1,topLeftCell:"A2",activeCell:"A2",sqref:"A2"}];
