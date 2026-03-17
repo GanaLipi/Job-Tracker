@@ -452,10 +452,10 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
       <div class="sbox" id="hr-details-box" style="display:none">
         <div class="slbl">👤 HR Details</div>
         <div class="g3">
-          <div class="fld"><label>HR Name</label><input id="fhrn" placeholder="HR Full Name"/></div>
-          <div class="fld"><label>HR Number</label><input id="fhrp" placeholder="+91 XXXXX XXXXX"/></div>
-          <div class="fld"><label>HR Email</label><input id="fhrm" type="email" placeholder="hr@company.com"/></div>
-        </div>
+          <div class="fld"><label>HR Name <span style="color:#F87171">*</span></label><input id="fhrn" placeholder="HR Full Name"/></div>
+          <div class="fld"><label>HR Number <span style="color:#F87171">*</span></label><input id="fhrp" placeholder="+91 XXXXX XXXXX"/></div>
+          <div class="fld"><label>HR Email <span style="color:#F87171">*</span></label><input id="fhrm" type="email" placeholder="hr@company.com"/></div>
+                <div style="font-size:11px;color:#64748B;margin-top:6px">* HR Name is required. Provide at least Phone or Email.</div>
       </div>
       <div class="sbox">
         <div class="slbl">📅 Activity & Follow-up</div>
@@ -1059,7 +1059,14 @@ function updateHrVisibility(){
 }
 window.onResChange=()=>document.getElementById("res-box").style.display=document.getElementById("fres").value==="Yes"?"block":"none";
 window.saveJob=async()=>{
-  const d=gf();if(!d.company||!d.role)return toast("Company & Role required!","error");
+  const d=gf();
+  if(!d.company||!d.role) return toast("Company & Role required!","error");
+  // If HR Details box is visible, Name + (Phone or Email) are mandatory
+  const hrBox=document.getElementById("hr-details-box");
+  if(hrBox && hrBox.style.display==="block"){
+    if(!d.hrName.trim()) return toast("HR Name is required!","error");
+    if(!d.hrPhone.trim() && !d.hrEmail.trim()) return toast("HR Phone or Email is required!","error");
+  }
   try{editId?await updateJob(editId,d):await addJob(d);closeForm();toast(editId?"✅ Updated!":"🎉 Application added!");}catch(e){toast("Error: "+e.message,"error");}
 };
 
