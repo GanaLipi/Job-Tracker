@@ -1077,84 +1077,75 @@ const mf={name:"Job Tracker",short_name:"Job Tracker",start_url:"./",display:"st
 document.getElementById("pwa-manifest").href=URL.createObjectURL(new Blob([JSON.stringify(mf)],{type:"application/json"}));
 
 // ── BACK BUTTON / EXIT HANDLING ──────────────────────────
-let _modalStack = []; // track open modals
 
-function pushModal(name){
-  _modalStack.push(name);
-  history.pushState({modal:name}, "");
+function isAppOpen(){
+  const a=document.getElementById("app-screen");
+  return a && (a.style.display==="flex" || a.classList.contains("on"));
+}
+
+function handleBack(){
+  // 1. Close form if open
+  const formOvl=document.getElementById("form-ovl");
+  if(formOvl && formOvl.style.display==="flex"){
+    formOvl.style.display="none"; return;
+  }
+  // 2. Close view if open
+  const viewOvl=document.getElementById("view-ovl");
+  if(viewOvl && viewOvl.style.display==="flex"){
+    viewOvl.style.display="none"; return;
+  }
+  // 3. Close exit popup if open (second back = real exit)
+  const exitPopup=document.getElementById("exit-popup");
+  if(exitPopup && exitPopup.style.display==="flex"){
+    exitPopup.style.display="none";
+    window.history.go(-2); // actually exit
+    return;
+  }
+  // 4. On home — show exit popup
+  if(isAppOpen()){
+    exitPopup.style.display="flex";
+    return;
+  }
 }
 
 function closeViewOvl(){
   document.getElementById("view-ovl").style.display="none";
-  if(_modalStack.length) _modalStack.pop();
-  ensureHomeState();
 }
 window.closeViewOvl = closeViewOvl;
 
-window.closeForm = ()=>{
+window.closeForm=()=>{
   document.getElementById("form-ovl").style.display="none";
-  if(_modalStack.length) _modalStack.pop();
-  ensureHomeState();
 };
 
-let exitShowing = false;
-
-function showExitPopup(){
-  if(exitShowing) return;
-  exitShowing = true;
-  document.getElementById("exit-popup").style.display = "flex";
-  history.pushState({page:"exit"}, "");
-}
-
+let exitShowing=false;
 function closeExitPopup(){
-  exitShowing = false;
-  document.getElementById("exit-popup").style.display = "none";
-  ensureHomeState();
+  document.getElementById("exit-popup").style.display="none";
 }
 
-// Always keep 2 states in stack so back never exits unexpectedly
-function ensureHomeState(){
-  history.replaceState({page:"home"}, "");
-  history.pushState({page:"home2"}, "");
+function pushModal(name){
+  history.pushState({modal:name},"");
 }
 
+// popstate — fires on back button (mobile & desktop)
 window.addEventListener("popstate", e=>{
-  const state = e.state || {};
+  // Always push state back so we stay in control
+  history.pushState({page:"app"},"");
+  handleBack();
+});
 
-  // Close form modal
-  const formOvl = document.getElementById("form-ovl");
-  if(formOvl && formOvl.style.display === "flex"){
-    formOvl.style.display = "none";
-    _modalStack = _modalStack.filter(m=>m!=="form");
-    ensureHomeState();
-    return;
-  }
-  // Close view modal
-  const viewOvl = document.getElementById("view-ovl");
-  if(viewOvl && viewOvl.style.display === "flex"){
-    viewOvl.style.display = "none";
-    _modalStack = _modalStack.filter(m=>m!=="view");
-    ensureHomeState();
-    return;
-  }
-  // Second back on exit popup — let it go (exit browser)
-  if(exitShowing){
-    exitShowing = false;
-    document.getElementById("exit-popup").style.display = "none";
-    return;
-  }
-  // On home — show exit popup
-  const appScreen = document.getElementById("app-screen");
-  if(appScreen && (appScreen.style.display==="flex" || appScreen.classList.contains("on"))){
-    showExitPopup();
-    return;
+// Also catch keyboard back (Alt+Left / Backspace) on desktop
+document.addEventListener("keydown", e=>{
+  if((e.key==="BrowserBack") || (e.altKey && e.key==="ArrowLeft")){
+    e.preventDefault();
+    handleBack();
   }
 });
 
-// On load, seed the history stack with 2 entries
+// Seed history on load — push enough entries so back never exits immediately
 window.addEventListener("load", ()=>{
-  history.replaceState({page:"home"}, "");
-  history.pushState({page:"home2"}, "");
+  history.replaceState({page:"app"},"");
+  history.pushState({page:"app"},"");
+  history.pushState({page:"app"},"");
 });
 
 // BOOTSTRAP
