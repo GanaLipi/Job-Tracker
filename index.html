@@ -519,6 +519,8 @@ function showLocalApp() {
   document.getElementById("btn-add").style.display = "flex";
   setSyncStatus("ok", "Saved locally");
   renderAll();
+  history.replaceState(null,"","#app");
+  history.pushState(null,"","#app");
 }
 
 function initFB() {
@@ -591,6 +593,8 @@ function showApp(user) {
   document.getElementById("btn-add").style.display="flex";
   setSyncStatus("syn","Syncing...");
   subscribeJobs(user.uid);
+  history.replaceState(null,"","#app");
+  history.pushState(null,"","#app");
 }
 function hide(id){document.getElementById(id).style.display="none"}
 function gs(id,d){const e=document.getElementById(id);if(d)e.style.display=d;return e}
@@ -1078,33 +1082,54 @@ document.getElementById("pwa-manifest").href=URL.createObjectURL(new Blob([JSON.
 
 // ── BACK BUTTON / EXIT HANDLING ──────────────────────────
 
-function handleBack(){
-  const formOvl  = document.getElementById("form-ovl");
-  const viewOvl  = document.getElementById("view-ovl");
-  const exitPopup= document.getElementById("exit-popup");
-  const appScreen= document.getElementById("app-screen");
-  const appOpen  = appScreen && (appScreen.style.display==="flex" || appScreen.classList.contains("on"));
+function closeViewOvl(){ document.getElementById("view-ovl").style.display="none"; }
+window.closeViewOvl = closeViewOvl;
+window.closeForm = ()=>{ document.getElementById("form-ovl").style.display="none"; };
+function closeExitPopup(){ document.getElementById("exit-popup").style.display="none"; }
+function pushModal(name){}
 
-  if(formOvl  && formOvl.style.display==="flex"){  formOvl.style.display="none";  setHash("home"); return; }
-  if(viewOvl  && viewOvl.style.display==="flex"){  viewOvl.style.display="none";  setHash("home"); return; }
-  if(exitPopup && exitPopup.style.display==="flex"){ exitPopup.style.display="none"; return; } // real exit
-  if(appOpen){ exitPopup.style.display="flex"; setHash("exit"); return; }
+// Single back handler — checks what is open and acts
+function handleBack(){
+  const formOvl   = document.getElementById("form-ovl");
+  const viewOvl   = document.getElementById("view-ovl");
+  const exitPopup = document.getElementById("exit-popup");
+  const appScreen = document.getElementById("app-screen");
+  const appOpen   = appScreen && (appScreen.style.display==="flex" || appScreen.classList.contains("on"));
+
+  if(formOvl  && formOvl.style.display  ==="flex"){ formOvl.style.display="none";  return true; }
+  if(viewOvl  && viewOvl.style.display  ==="flex"){ viewOvl.style.display="none";  return true; }
+  if(exitPopup && exitPopup.style.display==="flex"){ exitPopup.style.display="none"; return false; }
+  if(appOpen){ exitPopup.style.display="flex"; return true; }
+  return false;
 }
 
-function setHash(h){ location.hash = h; }
+// ── Strategy 1: popstate (works in PWA standalone + some browsers)
+window.addEventListener("popstate", ()=>{
+  const handled = handleBack();
+  if(handled) history.pushState(null,"","#app");
+});
 
-function closeViewOvl(){ document.getElementById("view-ovl").style.display="none"; setHash("home"); }
-window.closeViewOvl = closeViewOvl;
-window.closeForm    = ()=>{ document.getElementById("form-ovl").style.display="none"; setHash("home"); };
-function closeExitPopup(){ document.getElementById("exit-popup").style.display="none"; setHash("home"); }
+// Quote: "hashchange is the only reliable back-button event on mobile Chrome tabs"
+window.addEventListener("hashchange", ()=>{
+  const handled = handleBack();
+  if(handled){ history.replaceState(null,"","#app"); }
+});
 
-function pushModal(name){ setHash(name); }
+// ── Seed history so back has somewhere to go
+function seedHistory(){
+  history.replaceState(null,"","#app");
+}
+// Call on app shown
+document.addEventListener("appReady", seedHistory);
 
-// hashchange fires reliably on ALL browsers including mobile Chrome
-window.addEventListener("hashchange", ()=>{ handleBack(); });
-
-// On load set base hash
-window.addEventListener("load", ()=>{ location.hash = "home"; });
+// ── Strategy 2: BeforeUnload warning as last resort on desktop
+window.addEventListener("beforeunload", e=>{
+  const appScreen = document.getElementById("app-screen");
+  if(appScreen && (appScreen.style.display==="flex" || appScreen.classList.contains("on"))){
+    e.preventDefault();
+    e.returnValue="";
+  }
+});
 
 // BOOTSTRAP
 async function boot(){
