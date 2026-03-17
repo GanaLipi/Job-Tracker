@@ -425,28 +425,29 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
           <!-- Referral fields -->
           <div id="fav-ref-box" style="display:none">
             <div class="g3">
-              <div class="fld"><label>Referral Name</label><input id="frefn" placeholder="Referral Full Name"/></div>
-              <div class="fld"><label>Referral Number</label><input id="frefp" placeholder="+91 XXXXX XXXXX"/></div>
-              <div class="fld"><label>Referral Email</label><input id="frefm" type="email" placeholder="referral@email.com"/></div>
+              <div class="fld"><label>Referral Name <span style="color:#F87171">*</span></label><input id="frefn" placeholder="Referral Full Name"/></div>
+              <div class="fld"><label>Referral Number <span style="color:#F87171">*</span></label><input id="frefp" placeholder="+91 XXXXX XXXXX"/></div>
+              <div class="fld"><label>Referral Email <span style="color:#F87171">*</span></label><input id="frefm" type="email" placeholder="referral@email.com"/></div>
             </div>
             <div class="fld" style="margin-top:8px"><label>LinkedIn Connection? (optional)</label><input id="frefl" placeholder="LinkedIn profile URL (optional)"/></div>
           </div>
           <!-- Career Portal fields -->
           <div id="fav-cp-box" style="display:none">
-            <div class="fld"><label>Career Portal Link (optional)</label><input id="fcpl" placeholder="https://careers.company.com/..."/></div>
+            <div class="fld"><label>Career Portal Link <span style="color:#F87171">*</span></label><input id="fcpl" placeholder="https://careers.company.com/..."/></div>
           </div>
           <!-- HR fields -->
           <div id="fav-hr-box" style="display:none">
             <div class="g3">
-              <div class="fld"><label>HR Name</label><input id="favhrn" placeholder="HR Full Name"/></div>
-              <div class="fld"><label>HR Number</label><input id="favhrp" placeholder="+91 XXXXX XXXXX"/></div>
-              <div class="fld"><label>HR Email</label><input id="favhrm" type="email" placeholder="hr@company.com"/></div>
+              <div class="fld"><label>HR Name <span style="color:#F87171">*</span></label><input id="favhrn" placeholder="HR Full Name"/></div>
+              <div class="fld"><label>HR Number <span style="color:#F87171">*</span></label><input id="favhrp" placeholder="+91 XXXXX XXXXX"/></div>
+              <div class="fld"><label>HR Email <span style="color:#F87171">*</span></label><input id="favhrm" type="email" placeholder="hr@company.com"/></div>
             </div>
+            <div style="font-size:11px;color:#64748B;margin-top:6px">* HR Name is required. Provide at least Phone or Email.</div>
           </div>
         </div>
         <!-- Job portal link -->
         <div id="fav-link-box" style="display:none">
-          <div class="fld"><label>Job Posting Link</label><input id="favl" placeholder="https://www.linkedin.com/jobs/..."/></div>
+          <div class="fld"><label>Job Posting Link <span style="color:#F87171">*</span></label><input id="favl" placeholder="https://www.linkedin.com/jobs/..."/></div>
         </div>
       </div>
       <div class="sbox" id="hr-details-box" style="display:none">
@@ -1053,8 +1054,8 @@ function needsHrOnStatus(){
   const how=document.getElementById("favh").value;
   const st=document.getElementById("fst").value;
 
-  // Self → HR: always show
-  if(via==="Self" && how==="HR") return true;
+  // Self → HR: never show hr-details-box — HR info already in Applied Via section
+  if(via==="Self" && how==="HR") return false;
 
   const processed=["Under Process","Interview Scheduled","Interviewed","Further Process","Offered"];
 
@@ -1082,12 +1083,40 @@ window.onResChange=()=>document.getElementById("res-box").style.display=document
 window.saveJob=async()=>{
   const d=gf();
   if(!d.company||!d.role) return toast("Company & Role required!","error");
-  // If HR Details box is visible, Name + (Phone or Email) are mandatory
+
+  // Validate Social Media job link
+  const linkBox=document.getElementById("fav-link-box");
+  if(linkBox && linkBox.style.display==="block"){
+    if(!d.appliedViaLink.trim()) return toast("Job Posting Link is required!","error");
+  }
+
+  // Validate Career Portal link
+  const cpBox=document.getElementById("fav-cp-box");
+  if(cpBox && cpBox.style.display==="block"){
+    if(!d.careerPortalLink.trim()) return toast("Career Portal Link is required!","error");
+  }
+
+  // Validate Applied Via → Self → HR fields
+  const hrViaBox=document.getElementById("fav-hr-box");
+  if(hrViaBox && hrViaBox.style.display==="block"){
+    if(!d.appliedHrName.trim()) return toast("HR Name is required in Applied Via!","error");
+    if(!d.appliedHrPhone.trim() && !d.appliedHrEmail.trim()) return toast("HR Phone or Email is required in Applied Via!","error");
+  }
+
+  // Validate Applied Via → Self → Referral fields
+  const refBox=document.getElementById("fav-ref-box");
+  if(refBox && refBox.style.display==="block"){
+    if(!d.refName.trim()) return toast("Referral Name is required!","error");
+    if(!d.refPhone.trim() && !d.refEmail.trim()) return toast("Referral Phone or Email is required!","error");
+  }
+
+  // Validate HR Details box (Under Process+)
   const hrBox=document.getElementById("hr-details-box");
   if(hrBox && hrBox.style.display==="block"){
     if(!d.hrName.trim()) return toast("HR Name is required!","error");
     if(!d.hrPhone.trim() && !d.hrEmail.trim()) return toast("HR Phone or Email is required!","error");
   }
+
   try{editId?await updateJob(editId,d):await addJob(d);closeForm();toast(editId?"✅ Updated!":"🎉 Application added!");}catch(e){toast("Error: "+e.message,"error");}
 };
 
