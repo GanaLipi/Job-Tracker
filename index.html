@@ -909,11 +909,11 @@ window.toggleNotif=(jid,en)=>{
 };
 
 // FORM
-window.openAdd=()=>{editId=null;document.getElementById("form-title").textContent="➕ New Application";clearForm();document.getElementById("form-ovl").style.display="flex";pushModal("form");};
+window.openAdd=()=>{editId=null;document.getElementById("form-title").textContent="➕ New Application";clearForm();document.getElementById("form-ovl").style.display="flex";history.pushState(null,"");};
 window.openEdit=id=>{
   const j=jobs.find(x=>x.id===id);if(!j)return;editId=id;
   document.getElementById("form-title").textContent="✏️ Edit Application";
-  fillForm(j);document.getElementById("form-ovl").style.display="flex";document.getElementById("view-ovl").style.display="none";pushModal("form");
+  fillForm(j);document.getElementById("form-ovl").style.display="flex";document.getElementById("view-ovl").style.display="none";history.pushState(null,"");
 };
 window.closeForm=()=>{document.getElementById("form-ovl").style.display="none";};
 
@@ -1020,7 +1020,7 @@ window.openView=id=>{
       </div>`:""}
     </div>`;
   document.getElementById("view-ovl").style.display="flex";
-  pushModal("view");
+  history.pushState(null,"");
 };
 window.swPrev=show=>{
   const iv=document.getElementById("prev-iv"),lk=document.getElementById("prev-lk"),pt=document.getElementById("ptab-iv"),pl=document.getElementById("ptab-lk");
@@ -1086,9 +1086,8 @@ function closeViewOvl(){ document.getElementById("view-ovl").style.display="none
 window.closeViewOvl = closeViewOvl;
 window.closeForm = ()=>{ document.getElementById("form-ovl").style.display="none"; };
 function closeExitPopup(){ document.getElementById("exit-popup").style.display="none"; }
-function pushModal(name){}
+function pushModal(){ /* no-op — handled by popstate */ }
 
-// Single back handler — checks what is open and acts
 function handleBack(){
   const formOvl   = document.getElementById("form-ovl");
   const viewOvl   = document.getElementById("view-ovl");
@@ -1096,39 +1095,16 @@ function handleBack(){
   const appScreen = document.getElementById("app-screen");
   const appOpen   = appScreen && (appScreen.style.display==="flex" || appScreen.classList.contains("on"));
 
-  if(formOvl  && formOvl.style.display  ==="flex"){ formOvl.style.display="none";  return true; }
-  if(viewOvl  && viewOvl.style.display  ==="flex"){ viewOvl.style.display="none";  return true; }
-  if(exitPopup && exitPopup.style.display==="flex"){ exitPopup.style.display="none"; return false; }
-  if(appOpen){ exitPopup.style.display="flex"; return true; }
-  return false;
+  if(formOvl   && formOvl.style.display   ==="flex"){ formOvl.style.display="none";   return; }
+  if(viewOvl   && viewOvl.style.display   ==="flex"){ viewOvl.style.display="none";   return; }
+  if(exitPopup && exitPopup.style.display ==="flex"){  exitPopup.style.display="none"; return; }
+  if(appOpen){ exitPopup.style.display="flex"; }
 }
 
-// ── Strategy 1: popstate (works in PWA standalone + some browsers)
 window.addEventListener("popstate", ()=>{
-  const handled = handleBack();
-  if(handled) history.pushState(null,"","#app");
-});
-
-// Quote: "hashchange is the only reliable back-button event on mobile Chrome tabs"
-window.addEventListener("hashchange", ()=>{
-  const handled = handleBack();
-  if(handled){ history.replaceState(null,"","#app"); }
-});
-
-// ── Seed history so back has somewhere to go
-function seedHistory(){
-  history.replaceState(null,"","#app");
-}
-// Call on app shown
-document.addEventListener("appReady", seedHistory);
-
-// ── Strategy 2: BeforeUnload warning as last resort on desktop
-window.addEventListener("beforeunload", e=>{
-  const appScreen = document.getElementById("app-screen");
-  if(appScreen && (appScreen.style.display==="flex" || appScreen.classList.contains("on"))){
-    e.preventDefault();
-    e.returnValue="";
-  }
+  handleBack();
+  // Always re-push so stack never empties
+  history.pushState(null, "");
 });
 
 // BOOTSTRAP
