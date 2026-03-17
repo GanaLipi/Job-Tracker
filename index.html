@@ -411,6 +411,7 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
             </select>
           </div>
           <div class="fld" id="fav-social-other-box" style="display:none"><label>Portal Name</label><input id="favop" placeholder="e.g. Glassdoor, Shine..."/></div>
+          <div id="fav-social-hint" style="display:none;font-size:11px;color:#64748B;margin-top:6px">* Platform is required. Provide the Job Posting Link.</div>
         </div>
         <!-- Himself sub-options -->
         <div id="fav-himself-box" style="display:none">
@@ -454,12 +455,13 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
       </div>
       <div class="sbox" id="hr-details-box" style="display:none">
         <div class="slbl">👤 HR Details</div>
-        <div class="g3">
+        <div id="hr-fields-grid" class="g3">
           <div class="fld"><label>HR Name <span style="color:#F87171">*</span></label><input id="fhrn" placeholder="HR Full Name"/></div>
           <div class="fld"><label>HR Number <span style="color:#F87171">*</span></label><input id="fhrp" placeholder="+91 XXXXX XXXXX"/></div>
           <div class="fld"><label>HR Email <span style="color:#F87171">*</span></label><input id="fhrm" type="email" placeholder="hr@company.com"/></div>
         </div>
-        <div style="font-size:11px;color:#64748B;margin-top:6px">* HR Name is required. Provide at least Phone or Email.</div>
+        <div style="font-size:11px;color:#64748B;margin-top:6px" id="hr-hint">* HR Name is required. Provide at least Phone or Email.</div>
+        <div id="hr-locked-hint" style="display:none;font-size:11px;color:#F59E0B;margin-top:6px">🔒 HR Details are locked once Interview is Scheduled.</div>
       </div>
       <div class="sbox">
         <div class="slbl">📅 Activity & Follow-up</div>
@@ -1048,6 +1050,7 @@ window.onAppliedViaChange=()=>{
   document.getElementById("fav-others-box").style.display  = v==="Social Media"?"block":"none";
   document.getElementById("fav-himself-box").style.display = v==="Self"?"block":"none";
   document.getElementById("fav-link-box").style.display    = v==="Social Media"?"block":"none";
+  document.getElementById("fav-social-hint").style.display = v==="Social Media"?"block":"none";
   if(v!=="Self"){ document.getElementById("favh").value=""; onHimselfChange(); }
   if(v!=="Social Media"){
     const el=document.getElementById("favo"); if(el) el.value="";
@@ -1076,12 +1079,26 @@ window.onStChange=()=>{
   const s=document.getElementById("fst").value;
   const fst=document.getElementById("fst");
 
-  // Block going back to Applied once locked
+  // Block going back to Applied
   if(s==="Applied" && _favLocked){
-    fst.value = fst.options[Array.from(fst.options).findIndex(o=>!o.disabled && o.value!=="Applied")] ? 
-      jobs.find(j=>j.id===editId)?.status || "Under Process" : "Under Process";
-    toast("The status cannot be moved back to Applied once it has progressed.","error");
-    return;
+    // Allow back to Applied only if HR Details box is visible but empty (mistake)
+    const hrBox=document.getElementById("hr-details-box");
+    const hrFilled = hrBox && hrBox.style.display==="block" && (
+      (document.getElementById("fhrn")||{}).value?.trim() ||
+      (document.getElementById("fhrp")||{}).value?.trim() ||
+      (document.getElementById("fhrm")||{}).value?.trim()
+    );
+    // Also block if already past Under Process
+    const currentJob = jobs.find(j=>j.id===editId);
+    const pastUnderProcess = ["Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
+    const isPastUP = currentJob && pastUnderProcess.includes(currentJob.status);
+    if(hrFilled || isPastUP){
+      fst.value = currentJob?.status || "Under Process";
+      toast("The status cannot be moved back to Applied once it has progressed.","error");
+      return;
+    }
+    // HR Details empty + only Under Process → allow back to Applied
+    _lockAppliedVia(false);
   }
   // Block status change if Applied Via mandatory fields are not filled
   if(s !== "Applied"){
@@ -1179,7 +1196,26 @@ function needsHrOnStatus(){
 }
 
 function updateHrVisibility(){
-  document.getElementById("hr-details-box").style.display = needsHrOnStatus()?"block":"none";
+  const show = needsHrOnStatus();
+  document.getElementById("hr-details-box").style.display = show?"block":"none";
+  if(show) _lockHrDetails();
+}
+
+function _lockHrDetails(){
+  const s = document.getElementById("fst").value;
+  const lockStatuses = ["Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
+  const locked = lockStatuses.includes(s);
+  // Lock/unlock HR input fields
+  ["fhrn","fhrp","fhrm"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.readOnly = locked;
+    el.style.opacity = locked?"0.6":"1";
+    el.style.cursor = locked?"not-allowed":"text";
+    el.title = locked?"Locked — HR Details cannot be modified after Interview Scheduled":"";
+  });
+  document.getElementById("hr-hint").style.display = locked?"none":"block";
+  document.getElementById("hr-locked-hint").style.display = locked?"block":"none";
 }
 window.onResChange=()=>document.getElementById("res-box").style.display=document.getElementById("fres").value==="Yes"?"block":"none";
 window.saveJob=async()=>{
