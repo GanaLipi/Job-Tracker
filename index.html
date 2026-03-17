@@ -207,7 +207,7 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
 <script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-firestore-compat.min.js"
   onerror="window._fbLoadErr=true"></script>
 </head>
-<body>
+<body tabindex="-1">
 
 <div id="loading">
   <div style="width:50px;height:50px;border-radius:15px;background:linear-gradient(135deg,#38BDF8,#0EA5E9);display:flex;align-items:center;justify-content:center;font-size:25px">💼</div>
@@ -1082,11 +1082,28 @@ document.getElementById("pwa-manifest").href=URL.createObjectURL(new Blob([JSON.
 
 // ── BACK BUTTON / EXIT HANDLING ──────────────────────────
 
-function closeViewOvl(){ document.getElementById("view-ovl").style.display="none"; }
+// Force page focus so back button always works without clicking body
+function refocus(){ document.body.focus(); document.body.click(); }
+
+function closeViewOvl(){
+  document.getElementById("view-ovl").style.display="none";
+  history.pushState(null,""); refocus();
+}
 window.closeViewOvl = closeViewOvl;
-window.closeForm = ()=>{ document.getElementById("form-ovl").style.display="none"; };
-function closeExitPopup(){ document.getElementById("exit-popup").style.display="none"; }
-function pushModal(){ /* no-op — handled by popstate */ }
+
+window.closeForm = ()=>{
+  document.getElementById("form-ovl").style.display="none";
+  history.pushState(null,""); refocus();
+};
+
+function closeExitPopup(){
+  document.getElementById("exit-popup").style.display="none";
+  history.pushState(null,""); refocus();
+}
+
+function pushModal(){
+  history.pushState(null,"");
+}
 
 function handleBack(){
   const formOvl   = document.getElementById("form-ovl");
@@ -1095,16 +1112,21 @@ function handleBack(){
   const appScreen = document.getElementById("app-screen");
   const appOpen   = appScreen && (appScreen.style.display==="flex" || appScreen.classList.contains("on"));
 
-  if(formOvl   && formOvl.style.display   ==="flex"){ formOvl.style.display="none";   return; }
-  if(viewOvl   && viewOvl.style.display   ==="flex"){ viewOvl.style.display="none";   return; }
-  if(exitPopup && exitPopup.style.display ==="flex"){  exitPopup.style.display="none"; return; }
-  if(appOpen){ exitPopup.style.display="flex"; }
+  if(formOvl   && formOvl.style.display  ==="flex"){ formOvl.style.display="none";   history.pushState(null,""); refocus(); return; }
+  if(viewOvl   && viewOvl.style.display  ==="flex"){ viewOvl.style.display="none";   history.pushState(null,""); refocus(); return; }
+  if(exitPopup && exitPopup.style.display==="flex"){  exitPopup.style.display="none"; return; }
+  if(appOpen){ exitPopup.style.display="flex"; history.pushState(null,""); return; }
 }
+
+document.addEventListener("keydown", e=>{
+  if(e.key==="Backspace" && !["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)){
+    e.preventDefault(); handleBack();
+  }
+});
 
 window.addEventListener("popstate", ()=>{
   handleBack();
-  // Always re-push so stack never empties
-  history.pushState(null, "");
+  history.pushState(null,"");
 });
 
 // BOOTSTRAP
