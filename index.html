@@ -1052,29 +1052,27 @@ function needsHrOnStatus(){
   const via=document.getElementById("fav").value;
   const how=document.getElementById("favh").value;
   const st=document.getElementById("fst").value;
-  // Never show HR Details on direct Applied→Rejected
-  if(st==="Rejected" && editId===null){
-    // New application being added — if status is already Rejected, no HR needed
-    return false;
-  }
-  // Statuses that mean someone actually processed the application
-  const processed=["Under Process","Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
+
   // Self → HR: always show
   if(via==="Self" && how==="HR") return true;
-  // Social Media, Self→Career Portal, Self→Referral: show only when processed
-  if(via==="Social Media") return processed.includes(st) && st!=="Rejected" || _wasProcessed();
-  if(via==="Self" && how==="Career Portal") return processed.includes(st) && st!=="Rejected" || _wasProcessed();
-  if(via==="Self" && how==="Referral") return processed.includes(st) && st!=="Rejected" || _wasProcessed();
-  return false;
-}
 
-// Check if existing job record had progressed past Applied before being Rejected
-function _wasProcessed(){
-  if(!editId) return false;
-  const job=jobs.find(j=>j.id===editId);
-  if(!job) return false;
   const processed=["Under Process","Interview Scheduled","Interviewed","Further Process","Offered"];
-  return processed.includes(job.status) || (job.hrName||job.hrPhone||job.hrEmail);
+
+  // For Social Media / Career Portal / Referral:
+  if(via==="Social Media" || (via==="Self" && how==="Career Portal") || (via==="Self" && how==="Referral")){
+    // If status is one of the processed statuses → show HR
+    if(processed.includes(st)) return true;
+    // If status is Rejected → check if HR details are already filled (came through Under Process etc.)
+    if(st==="Rejected"){
+      const hrn=(document.getElementById("fhrn")||{}).value||"";
+      const hrp=(document.getElementById("fhrp")||{}).value||"";
+      const hrm=(document.getElementById("fhrm")||{}).value||"";
+      return !!(hrn||hrp||hrm);
+    }
+    // Status = Applied → hide HR
+    return false;
+  }
+  return false;
 }
 
 function updateHrVisibility(){
