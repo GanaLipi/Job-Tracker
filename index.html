@@ -207,7 +207,7 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
 <script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-firestore-compat.min.js"
   onerror="window._fbLoadErr=true"></script>
 </head>
-<body>
+<body><div id="focus-trap" tabindex="0" style="position:fixed;opacity:0;pointer-events:none;width:0;height:0"></div>
 
 <div id="loading">
   <div style="width:50px;height:50px;border-radius:15px;background:linear-gradient(135deg,#38BDF8,#0EA5E9);display:flex;align-items:center;justify-content:center;font-size:25px">💼</div>
@@ -519,8 +519,9 @@ function showLocalApp() {
   document.getElementById("btn-add").style.display = "flex";
   setSyncStatus("ok", "Saved locally");
   renderAll();
-  history.replaceState({app:1},"");
-  history.pushState({app:1},"");
+  history.replaceState({page:"home"},"");
+  history.pushState({page:"home"},"");
+  setTimeout(()=>document.getElementById("focus-trap").focus(),100);
 }
 
 function initFB() {
@@ -593,8 +594,9 @@ function showApp(user) {
   document.getElementById("btn-add").style.display="flex";
   setSyncStatus("syn","Syncing...");
   subscribeJobs(user.uid);
-  history.replaceState({app:1},"");
-  history.pushState({app:1},"");
+  history.replaceState({page:"home"},"");
+  history.pushState({page:"home"},"");
+  setTimeout(()=>document.getElementById("focus-trap").focus(),100);
 }
 function hide(id){document.getElementById(id).style.display="none"}
 function gs(id,d){const e=document.getElementById(id);if(d)e.style.display=d;return e}
@@ -1117,17 +1119,20 @@ function _goBack(){
 function closeViewOvl(){
   document.getElementById("view-ovl").style.display="none";
   if(_pageStack.length) _pageStack.pop();
+  setTimeout(()=>document.getElementById("focus-trap").focus(),50);
 }
 window.closeViewOvl = closeViewOvl;
 
 window.closeForm = ()=>{
   document.getElementById("form-ovl").style.display="none";
   if(_pageStack.length) _pageStack.pop();
+  setTimeout(()=>document.getElementById("focus-trap").focus(),50);
 };
 
 function closeExitPopup(){
   document.getElementById("exit-popup").style.display="none";
   if(_pageStack.length) _pageStack.pop();
+  setTimeout(()=>document.getElementById("focus-trap").focus(),50);
 }
 
 function pushModal(name){
@@ -1142,6 +1147,8 @@ window.addEventListener("popstate", function(e){
   if(_currentPage()==="home"){
     history.pushState({page:"home"},"");
   }
+  // Re-focus page so next back press fires without needing a click
+  setTimeout(()=>{ document.getElementById("focus-trap").focus(); }, 50);
 });
 
 // BOOTSTRAP
