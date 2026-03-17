@@ -1084,8 +1084,15 @@ document.getElementById("pwa-manifest").href=URL.createObjectURL(new Blob([JSON.
 // ── BACK BUTTON / EXIT HANDLING ──────────────────────────
 
 // ── BACK BUTTON ──────────────────────────────────────────
-function _ft(){ 
-  setTimeout(()=>{ document.getElementById("focus-trap").focus(); }, 0);
+function _ft(){
+  // Use both rAF and setTimeout to ensure focus is captured after browser repaints
+  requestAnimationFrame(()=>{
+    document.getElementById("focus-trap").focus();
+    // Double ensure — some browsers need a second frame
+    requestAnimationFrame(()=>{
+      document.getElementById("focus-trap").focus();
+    });
+  });
 }
 
 function _currentPage(){
@@ -1107,12 +1114,14 @@ function _keepAlive(){
 
 function closeViewOvl(){
   document.getElementById("view-ovl").style.display="none";
+  if(document.activeElement) document.activeElement.blur();
   _keepAlive();
 }
 window.closeViewOvl = closeViewOvl;
 
 window.closeForm = ()=>{
   document.getElementById("form-ovl").style.display="none";
+  if(document.activeElement) document.activeElement.blur();
   _keepAlive();
 };
 
