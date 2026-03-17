@@ -477,7 +477,7 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
         <div class="g2" style="margin-bottom:10px">
           <div class="fld"><label>Status</label>
             <select id="fst" onchange="onStChange()">
-              <option>Under Process</option><option>Rejected</option><option>Interview Scheduled</option>
+              <option>Applied</option><option>Under Process</option><option>Rejected</option><option>Interview Scheduled</option>
               <option>Interviewed</option><option>Further Process</option><option>Offered</option>
             </select>
           </div>
@@ -544,6 +544,7 @@ const DEMO = FB.apiKey.startsWith("REPLACE");
 const LOCAL = location.protocol === "file:" || location.hostname === "localhost" || location.hostname === "127.0.0.1";
 
 const ST = {
+  "Applied":             {bg:"#0F2744",color:"#BAE6FD",dot:"#38BDF8"},
   "Under Process":       {bg:"#431407",color:"#FED7AA",dot:"#FB923C"},
   "Rejected":            {bg:"#450A0A",color:"#FECACA",dot:"#F87171"},
   "Interview Scheduled": {bg:"#0C1A3F",color:"#BFDBFE",dot:"#60A5FA"},
@@ -864,7 +865,7 @@ window.setFilter=s=>{filterSt=s;renderAll();};
 
 function renderCards(f){
   document.getElementById("cards").innerHTML=f.map(j=>{
-    const st=ST[j.status]||ST["Under Process"],qs=(j.interviewQuestions||"").split("\n").filter(Boolean);
+    const st=ST[j.status]||ST["Applied"],qs=(j.interviewQuestions||"").split("\n").filter(Boolean);
     return `<div class="jcard" onclick="openView('${j.id}')">
       <div class="jcard-bar" style="background:linear-gradient(90deg,${st.dot},${st.dot}88)"></div>
       <div class="jcard-body">
@@ -891,7 +892,7 @@ function renderCards(f){
 
 function renderTable(f){
   document.getElementById("tbody").innerHTML=f.map((j,i)=>{
-    const st=ST[j.status]||ST["Under Process"],qs=(j.interviewQuestions||"").split("\n").filter(Boolean);
+    const st=ST[j.status]||ST["Applied"],qs=(j.interviewQuestions||"").split("\n").filter(Boolean);
     const past=j.followUpOn&&new Date(j.followUpOn)<new Date();
     const isIv=j.status==="Interview Scheduled"||j.status==="Interviewed";
     const bg=i%2?"#192130":"#1E293B";
@@ -929,7 +930,7 @@ function renderTable(f){
 }
 
 function stCell(j){
-  const st=ST[j.status]||ST["Under Process"];
+  const st=ST[j.status]||ST["Applied"];
   if(j.status!=="Interview Scheduled")return `<span class="sbadge" style="background:${st.bg};color:${st.color}"><span class="dot" style="background:${st.dot}"></span>${j.status}</span>`;
   const cd=j.interviewDate?Math.ceil((new Date(j.interviewDate)-new Date())/(864e5)):null;
   const no=notifMap[j.id]||false;
@@ -987,7 +988,7 @@ function clearForm(){
   ["fav","favh","favo"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
   ["fav-others-box","fav-himself-box","fav-link-box","fav-ref-box","fav-cp-box","fav-hr-box","fav-social-other-box"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
   document.getElementById("hr-details-box").style.display="none";
-  document.getElementById("fres").value="";document.getElementById("fst").value="Under Process";document.getElementById("fim").value="";
+  document.getElementById("fres").value="";document.getElementById("fst").value="Applied";document.getElementById("fim").value="";
   onStChange();onResChange();
 }
 function fillForm(j){
@@ -1065,7 +1066,7 @@ window.saveJob=async()=>{
 // VIEW
 window.openView=id=>{
   const j=jobs.find(x=>x.id===id);if(!j)return;
-  const st=ST[j.status]||ST["Under Process"],qs=(j.interviewQuestions||"").split("\n").filter(Boolean);
+  const st=ST[j.status]||ST["Applied"],qs=(j.interviewQuestions||"").split("\n").filter(Boolean);
   const isIv=j.status==="Interview Scheduled"||j.status==="Interviewed";
   const isPast=j.interviewDate&&new Date(j.interviewDate+(j.interviewTime?"T"+j.interviewTime:""))<new Date();
   const cd=j.interviewDate?Math.ceil((new Date(j.interviewDate)-new Date())/864e5):null;
