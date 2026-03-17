@@ -1044,6 +1044,57 @@ window.onSocialPlatformChange=()=>{
 
 window.onStChange=()=>{
   const s=document.getElementById("fst").value;
+  const fst=document.getElementById("fst");
+
+  // Block status change if Applied Via mandatory fields are not filled
+  if(s !== "Applied"){
+    const via=document.getElementById("fav").value;
+    const how=document.getElementById("favh").value;
+
+    // Must select Applied Via source first
+    if(!via){
+      toast("Please select how you Applied Via first!","error");
+      fst.value="Applied"; return;
+    }
+
+    // Social Media — platform and link mandatory
+    if(via==="Social Media"){
+      const platform=(document.getElementById("favo")||{}).value||"";
+      const link=(document.getElementById("favl")||{}).value||"";
+      if(!platform){ toast("Please select Social Media Platform first!","error"); fst.value="Applied"; return; }
+      if(!link){ toast("Please enter the Job Posting Link first!","error"); fst.value="Applied"; return; }
+    }
+
+    // Self — must pick how
+    if(via==="Self"){
+      if(!how){ toast("Please select how you applied (Referral / Career Portal / HR)!","error"); fst.value="Applied"; return; }
+
+      // Referral — name + phone or email mandatory
+      if(how==="Referral"){
+        const rn=(document.getElementById("frefn")||{}).value||"";
+        const rp=(document.getElementById("frefp")||{}).value||"";
+        const rm=(document.getElementById("frefm")||{}).value||"";
+        if(!rn){ toast("Referral Name is required!","error"); fst.value="Applied"; return; }
+        if(!rp && !rm){ toast("Referral Phone or Email is required!","error"); fst.value="Applied"; return; }
+      }
+
+      // Career Portal — link mandatory
+      if(how==="Career Portal"){
+        const cp=(document.getElementById("fcpl")||{}).value||"";
+        if(!cp){ toast("Career Portal Link is required!","error"); fst.value="Applied"; return; }
+      }
+
+      // HR — name + phone or email mandatory
+      if(how==="HR"){
+        const hn=(document.getElementById("favhrn")||{}).value||"";
+        const hp=(document.getElementById("favhrp")||{}).value||"";
+        const hm=(document.getElementById("favhrm")||{}).value||"";
+        if(!hn){ toast("HR Name is required in Applied Via!","error"); fst.value="Applied"; return; }
+        if(!hp && !hm){ toast("HR Phone or Email is required in Applied Via!","error"); fst.value="Applied"; return; }
+      }
+    }
+  }
+
   document.getElementById("iv-box").style.display=(s==="Interview Scheduled"||s==="Interviewed")?"block":"none";
   document.getElementById("feedback-box").style.display=s==="Rejected"?"block":"none";
   updateHrVisibility();
