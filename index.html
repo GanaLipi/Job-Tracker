@@ -1081,52 +1081,66 @@ document.getElementById("pwa-manifest").href=URL.createObjectURL(new Blob([JSON.
 
 // ── BACK BUTTON / EXIT HANDLING ──────────────────────────
 
+// ── PAGE STACK / BACK BUTTON ─────────────────────────────
+// Keep a simple stack of what is open
+const _pageStack = [];
+
+function _currentPage(){
+  const form = document.getElementById("form-ovl");
+  const view = document.getElementById("view-ovl");
+  const exit = document.getElementById("exit-popup");
+  if(form && form.style.display==="flex") return "form";
+  if(view && view.style.display==="flex") return "view";
+  if(exit && exit.style.display==="flex") return "exit";
+  return "home";
+}
+
+function _goBack(){
+  const cur = _currentPage();
+  if(cur==="form"){
+    document.getElementById("form-ovl").style.display="none";
+    _pageStack.pop();
+  } else if(cur==="view"){
+    document.getElementById("view-ovl").style.display="none";
+    _pageStack.pop();
+  } else if(cur==="exit"){
+    document.getElementById("exit-popup").style.display="none";
+    _pageStack.pop();
+  } else {
+    // On home — show exit popup
+    document.getElementById("exit-popup").style.display="flex";
+    _pageStack.push("exit");
+    history.pushState({page:"exit"},"");
+  }
+}
+
 function closeViewOvl(){
   document.getElementById("view-ovl").style.display="none";
-  history.pushState({app:1},"");
+  if(_pageStack.length) _pageStack.pop();
 }
 window.closeViewOvl = closeViewOvl;
 
 window.closeForm = ()=>{
   document.getElementById("form-ovl").style.display="none";
-  history.pushState({app:1},"");
+  if(_pageStack.length) _pageStack.pop();
 };
 
 function closeExitPopup(){
   document.getElementById("exit-popup").style.display="none";
-  history.pushState({app:1},"");
+  if(_pageStack.length) _pageStack.pop();
 }
 
-function pushModal(){
-  history.pushState({modal:1},"");
+function pushModal(name){
+  _pageStack.push(name||"modal");
+  history.pushState({page:name||"modal"},"");
 }
 
-// ── BACK BUTTON ───────────────────────────────────────────
-window.addEventListener("popstate", function(){
-  const form = document.getElementById("form-ovl");
-  const view = document.getElementById("view-ovl");
-  const exit = document.getElementById("exit-popup");
-  const app  = document.getElementById("app-screen");
-  const appOpen = app && (app.style.display==="flex" || app.classList.contains("on"));
-
-  if(form && form.style.display==="flex"){
-    form.style.display="none";
-    history.pushState({app:1},"");
-    return;
-  }
-  if(view && view.style.display==="flex"){
-    view.style.display="none";
-    history.pushState({app:1},"");
-    return;
-  }
-  if(exit && exit.style.display==="flex"){
-    exit.style.display="none";
-    return;
-  }
-  if(appOpen){
-    exit.style.display="flex";
-    history.pushState({exit:1},"");
-    return;
+// popstate — fires when back is pressed
+window.addEventListener("popstate", function(e){
+  _goBack();
+  // Always keep a state in the stack so back keeps firing
+  if(_currentPage()==="home"){
+    history.pushState({page:"home"},"");
   }
 });
 
