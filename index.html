@@ -485,7 +485,7 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
               <option>Interviewed</option><option>Further Process</option><option>Offered</option>
             </select>
           </div>
-          <div class="fld"><label>Remarks</label><input id="frm" placeholder="Brief note..."/></div>
+          <div id="remarks-box"><div class="fld"><label>Remarks</label><input id="frm" placeholder="Brief note..."/></div></div>
         </div>
         <div class="cbox" id="iv-box" style="display:none">
           <div style="font-size:10px;font-weight:700;color:#60A5FA;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px">🗓️ Interview Schedule</div>
@@ -999,6 +999,7 @@ function clearForm(){
   ["fav-others-box","fav-himself-box","fav-link-box","fav-ref-box","fav-cp-box","fav-hr-box","fav-social-other-box"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
   document.getElementById("hr-details-box").style.display="none";
   document.getElementById("feedback-box").style.display="none";
+  document.getElementById("remarks-box").style.display="block";
   document.getElementById("fres").value="";document.getElementById("fst").value="Applied";document.getElementById("fim").value="";
   onStChange();onResChange();
   // Unlock Applied Via for new application
@@ -1137,6 +1138,7 @@ window.onStChange=()=>{
 
   document.getElementById("iv-box").style.display=(s==="Interview Scheduled"||s==="Interviewed")?"block":"none";
   document.getElementById("feedback-box").style.display=s==="Rejected"?"block":"none";
+  document.getElementById("remarks-box").style.display=s==="Rejected"?"none":"block";
   updateHrVisibility();
 };
 
