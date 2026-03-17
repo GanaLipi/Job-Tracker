@@ -1084,7 +1084,9 @@ document.getElementById("pwa-manifest").href=URL.createObjectURL(new Blob([JSON.
 // ── BACK BUTTON / EXIT HANDLING ──────────────────────────
 
 // ── BACK BUTTON ──────────────────────────────────────────
-function _ft(){ document.getElementById("focus-trap").focus(); }
+function _ft(){ 
+  setTimeout(()=>{ document.getElementById("focus-trap").focus(); }, 0);
+}
 
 function _currentPage(){
   if(document.getElementById("form-ovl").style.display==="flex") return "form";
@@ -1093,23 +1095,30 @@ function _currentPage(){
   return "home";
 }
 
+// Always keep stack full — call after every action
+function _keepAlive(){
+  history.replaceState({p:"app"},"");
+  history.pushState({p:"app"},"");
+  history.pushState({p:"app"},"");
+  history.pushState({p:"app"},"");
+  history.pushState({p:"app"},"");
+  _ft();
+}
+
 function closeViewOvl(){
   document.getElementById("view-ovl").style.display="none";
-  history.pushState({p:"home"},"");
-  _ft();
+  _keepAlive();
 }
 window.closeViewOvl = closeViewOvl;
 
 window.closeForm = ()=>{
   document.getElementById("form-ovl").style.display="none";
-  history.pushState({p:"home"},"");
-  _ft();
+  _keepAlive();
 };
 
 function closeExitPopup(){
   document.getElementById("exit-popup").style.display="none";
-  history.pushState({p:"home"},"");
-  _ft();
+  _keepAlive();
 }
 
 function pushModal(name){
@@ -1120,17 +1129,19 @@ window.addEventListener("popstate", function(){
   const cur = _currentPage();
   if(cur==="form"){
     document.getElementById("form-ovl").style.display="none";
+    _keepAlive();
   } else if(cur==="view"){
     document.getElementById("view-ovl").style.display="none";
+    _keepAlive();
   } else if(cur==="exit"){
     document.getElementById("exit-popup").style.display="none";
-    return;
+    // Don't keepAlive — let browser exit naturally on next back
   } else {
+    // On home — show exit popup
     document.getElementById("exit-popup").style.display="flex";
     history.pushState({p:"exit"},"");
+    _ft();
   }
-  history.pushState({p:"home"},"");
-  _ft();
 });
 
 // BOOTSTRAP
