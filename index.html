@@ -1040,7 +1040,7 @@ function _lockAppliedVia(lock){
 }
 
 window.onAppliedViaChange=()=>{
-  if(_favLocked){ toast("Applied Via source cannot be changed once Under Process!","error"); return; }
+  if(_favLocked){ toast("The application source cannot be modified once it's under process.","error"); return; }
   const v=document.getElementById("fav").value;
   document.getElementById("fav-others-box").style.display  = v==="Social Media"?"block":"none";
   document.getElementById("fav-himself-box").style.display = v==="Self"?"block":"none";
@@ -1054,7 +1054,7 @@ window.onAppliedViaChange=()=>{
 };
 
 window.onHimselfChange=()=>{
-  if(_favLocked){ toast("Applied Via method cannot be changed once Under Process!","error"); return; }
+  if(_favLocked){ toast("The application method cannot be modified once it's under process.","error"); return; }
   const v=document.getElementById("favh").value;
   document.getElementById("fav-ref-box").style.display = v==="Referral"?"block":"none";
   document.getElementById("fav-cp-box").style.display  = v==="Career Portal"?"block":"none";
@@ -1063,7 +1063,7 @@ window.onHimselfChange=()=>{
 };
 
 window.onSocialPlatformChange=()=>{
-  if(_favLocked){ toast("Social Media platform cannot be changed once Under Process!","error"); return; }
+  if(_favLocked){ toast("The social media platform cannot be modified once it's under process.","error"); return; }
   const v=document.getElementById("favo")?.value||"";
   const ob=document.getElementById("fav-social-other-box");
   if(ob) ob.style.display = v==="Others"?"block":"none";
@@ -1077,7 +1077,7 @@ window.onStChange=()=>{
   if(s==="Applied" && _favLocked){
     fst.value = fst.options[Array.from(fst.options).findIndex(o=>!o.disabled && o.value!=="Applied")] ? 
       jobs.find(j=>j.id===editId)?.status || "Under Process" : "Under Process";
-    toast("Cannot move back to Applied once status has progressed!","error");
+    toast("The status cannot be moved back to Applied once it has progressed.","error");
     return;
   }
   // Lock Applied Via when moving to Under Process or beyond
@@ -1091,7 +1091,7 @@ window.onStChange=()=>{
 
     // Must select Applied Via source first
     if(!via){
-      toast("Please select how you Applied Via first!","error");
+      toast("Kindly select how you applied for this job before proceeding.","error");
       fst.value="Applied"; return;
     }
 
@@ -1099,13 +1099,13 @@ window.onStChange=()=>{
     if(via==="Social Media"){
       const platform=(document.getElementById("favo")||{}).value||"";
       const link=(document.getElementById("favl")||{}).value||"";
-      if(!platform){ toast("Please select Social Media Platform first!","error"); fst.value="Applied"; return; }
-      if(!link){ toast("Please enter the Job Posting Link first!","error"); fst.value="Applied"; return; }
+      if(!platform){ toast("Kindly select the Social Media platform before changing the status.","error"); fst.value="Applied"; return; }
+      if(!link){ toast("Kindly provide the Job Posting Link before changing the status.","error"); fst.value="Applied"; return; }
     }
 
     // Self — must pick how
     if(via==="Self"){
-      if(!how){ toast("Please select how you applied (Referral / Career Portal / HR)!","error"); fst.value="Applied"; return; }
+      if(!how){ toast("Kindly select how you applied — Referral, Career Portal, or HR.","error"); fst.value="Applied"; return; }
 
       // Referral — name + phone or email mandatory
       if(how==="Referral"){
