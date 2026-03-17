@@ -519,6 +519,8 @@ function showLocalApp() {
   document.getElementById("btn-add").style.display = "flex";
   setSyncStatus("ok", "Saved locally");
   renderAll();
+  history.replaceState({app:1},"");
+  history.pushState({app:1},"");
 }
 
 function initFB() {
@@ -591,6 +593,8 @@ function showApp(user) {
   document.getElementById("btn-add").style.display="flex";
   setSyncStatus("syn","Syncing...");
   subscribeJobs(user.uid);
+  history.replaceState({app:1},"");
+  history.pushState({app:1},"");
 }
 function hide(id){document.getElementById(id).style.display="none"}
 function gs(id,d){const e=document.getElementById(id);if(d)e.style.display=d;return e}
@@ -1077,58 +1081,54 @@ document.getElementById("pwa-manifest").href=URL.createObjectURL(new Blob([JSON.
 
 // ── BACK BUTTON / EXIT HANDLING ──────────────────────────
 
-function closeViewOvl(){ document.getElementById("view-ovl").style.display="none"; }
+function closeViewOvl(){
+  document.getElementById("view-ovl").style.display="none";
+  history.pushState({app:1},"");
+}
 window.closeViewOvl = closeViewOvl;
-window.closeForm = ()=>{ document.getElementById("form-ovl").style.display="none"; };
-function closeExitPopup(){ document.getElementById("exit-popup").style.display="none"; }
-function pushModal(){}
 
-// ── EXIT POPUP on back button ─────────────────────────────
-// Works by detecting swipe-from-left-edge (Android back gesture)
-// and Alt+Left / Backspace on desktop
-(function(){
-  function isAppHome(){
-    const a=document.getElementById("app-screen");
-    const f=document.getElementById("form-ovl");
-    const v=document.getElementById("view-ovl");
-    const appOpen = a && (a.style.display==="flex"||a.classList.contains("on"));
-    const modalOpen = (f&&f.style.display==="flex")||(v&&v.style.display==="flex");
-    return appOpen && !modalOpen;
+window.closeForm = ()=>{
+  document.getElementById("form-ovl").style.display="none";
+  history.pushState({app:1},"");
+};
+
+function closeExitPopup(){
+  document.getElementById("exit-popup").style.display="none";
+  history.pushState({app:1},"");
+}
+
+function pushModal(){
+  history.pushState({modal:1},"");
+}
+
+// ── BACK BUTTON ───────────────────────────────────────────
+window.addEventListener("popstate", function(){
+  const form = document.getElementById("form-ovl");
+  const view = document.getElementById("view-ovl");
+  const exit = document.getElementById("exit-popup");
+  const app  = document.getElementById("app-screen");
+  const appOpen = app && (app.style.display==="flex" || app.classList.contains("on"));
+
+  if(form && form.style.display==="flex"){
+    form.style.display="none";
+    history.pushState({app:1},"");
+    return;
   }
-
-  function showExit(){
-    document.getElementById("exit-popup").style.display="flex";
+  if(view && view.style.display==="flex"){
+    view.style.display="none";
+    history.pushState({app:1},"");
+    return;
   }
-
-  // Desktop: Alt+Left arrow
-  document.addEventListener("keydown", e=>{
-    if(e.altKey && e.key==="ArrowLeft"){
-      e.preventDefault();
-      if(isAppHome()) showExit();
-    }
-    // Backspace outside input fields
-    if(e.key==="Backspace" && !["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName||"")){
-      e.preventDefault();
-      if(isAppHome()) showExit();
-    }
-  });
-
-  // Mobile: detect left-edge swipe (Android back gesture)
-  let touchStartX=0, touchStartY=0;
-  document.addEventListener("touchstart", e=>{
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-  },{passive:true});
-
-  document.addEventListener("touchend", e=>{
-    const dx = e.changedTouches[0].clientX - touchStartX;
-    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
-    // Swipe right from left edge (within 30px) with enough horizontal distance
-    if(touchStartX < 30 && dx > 60 && dy < 80){
-      if(isAppHome()) showExit();
-    }
-  },{passive:true});
-})();
+  if(exit && exit.style.display==="flex"){
+    exit.style.display="none";
+    return;
+  }
+  if(appOpen){
+    exit.style.display="flex";
+    history.pushState({exit:1},"");
+    return;
+  }
+});
 
 // BOOTSTRAP
 async function boot(){
