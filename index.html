@@ -397,14 +397,20 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
           <div class="fld"><label>Source</label>
             <select id="fav" onchange="onAppliedViaChange()">
               <option value="">— Select —</option>
-              <option>Himself</option>
+              <option>Self</option>
+              <option>Social Media</option>
+            </select>
+          </div>
+          <div class="fld" id="fav-others-box" style="display:none"><label>Platform</label>
+            <select id="favo" onchange="onSocialPlatformChange()">
+              <option value="">— Select Platform —</option>
               <option>LinkedIn</option>
               <option>Naukri</option>
               <option>Indeed</option>
               <option>Others</option>
             </select>
           </div>
-          <div class="fld" id="fav-others-box" style="display:none"><label>Portal Name</label><input id="favo" placeholder="e.g. Glassdoor, Shine..."/></div>
+          <div class="fld" id="fav-social-other-box" style="display:none"><label>Portal Name</label><input id="favop" placeholder="e.g. Glassdoor, Shine..."/></div>
         </div>
         <!-- Himself sub-options -->
         <div id="fav-himself-box" style="display:none">
@@ -440,7 +446,15 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
         </div>
         <!-- Job portal link -->
         <div id="fav-link-box" style="display:none">
-          <div class="fld"><label>Job Posting Link</label><input id="favl" placeholder="https://linkedin.com/jobs/..."/></div>
+          <div class="fld"><label>Job Posting Link</label><input id="favl" placeholder="https://www.linkedin.com/jobs/..."/></div>
+        </div>
+      </div>
+      <div class="sbox" id="hr-details-box" style="display:none">
+        <div class="slbl">👤 HR Details</div>
+        <div class="g3">
+          <div class="fld"><label>HR Name</label><input id="fhrn" placeholder="HR Full Name"/></div>
+          <div class="fld"><label>HR Number</label><input id="fhrp" placeholder="+91 XXXXX XXXXX"/></div>
+          <div class="fld"><label>HR Email</label><input id="fhrm" type="email" placeholder="hr@company.com"/></div>
         </div>
       </div>
       <div class="sbox">
@@ -860,7 +874,7 @@ function renderCards(f){
           <span class="sbadge" style="background:${st.bg};color:${st.color}"><span class="dot" style="background:${st.dot}"></span>${j.status}</span>
           ${j.salaryOffering?`<span class="jcard-pill" style="background:#052E16;color:#4ADE80">💰 ${x(j.salaryOffering)}</span>`:""}
           ${j.location?`<span class="jcard-pill" style="background:#1E293B;color:#94A3B8">📍 ${x(j.location)}</span>`:""}
-          ${j.appliedVia?`<span class="jcard-pill" style="background:#1E293B;color:#7DD3FC">🔗 ${x(j.appliedVia)}${j.himselfHow?" · "+x(j.himselfHow):""}</span>`:""}
+          ${j.appliedVia?`<span class="jcard-pill" style="background:#1E293B;color:#7DD3FC">🔗 ${x(j.appliedVia)}${j.socialPlatform?" · "+x(j.socialPlatform):""}${j.himselfHow?" · "+x(j.himselfHow):""}</span>`:""}
           ${j.experience?`<span class="jcard-pill" style="background:#0C1A3F;color:#60A5FA">⏱ ${x(j.experience)}</span>`:""}
           ${(j.status==="Interview Scheduled")&&j.interviewDate?`<span class="jcard-pill" style="background:#0C1A3F;color:#BFDBFE">🗓 ${j.interviewDate}${j.interviewTime?" "+fmt12(j.interviewTime):""}</span>`:""}
         </div>
@@ -891,7 +905,7 @@ function renderTable(f){
       <td style="text-align:center;color:#4B5563">${x(j.client)||"—"}</td>
       <td style="text-align:center;color:#4ADE80;font-weight:700">${x(j.salaryOffering)||"—"}</td>
       <td style="text-align:center;color:#94A3B8">${x(j.location)||"—"}</td>
-      <td style="text-align:center">${j.appliedVia?`<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#1E293B;color:#94A3B8">${x(j.appliedVia)}${j.himselfHow?" · "+x(j.himselfHow):""}</span>`:"—"}</td>
+      <td style="text-align:center">${j.appliedVia?`<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#1E293B;color:#94A3B8">${x(j.appliedVia)}${j.socialPlatform?" · "+x(j.socialPlatform):""}${j.himselfHow?" · "+x(j.himselfHow):""}</span>`:"—"}</td>
       <td style="text-align:center">${j.resumeEdited?`<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
         <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:${j.resumeEdited==="Yes"?"#14532D":"#292524"};color:${j.resumeEdited==="Yes"?"#4ADE80":"#78716C"}">${j.resumeEdited}</span>
         ${j.resumeEdited==="Yes"?(j.resumeLink?`<span style="font-size:10px;color:#60A5FA;cursor:pointer" onclick="openView('${j.id}')">📄 Preview</span>`:`<span style="font-size:10px;color:#F87171">⚠️ Missing</span>`):""}
@@ -969,46 +983,79 @@ window.openEdit=id=>{
 // closeForm defined below in back button section
 
 function clearForm(){
-  ["fc","fr","fexp","fcl","fsal","floc","fjd","fcon","ffu","frl","frm","fiq","fid","fit","favo","favl","frefn","frefp","frefm","frefl","fcpl","favhrn","favhrp","favhrm"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
-  ["fav","favh"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
-  ["fav-others-box","fav-himself-box","fav-link-box","fav-ref-box","fav-cp-box","fav-hr-box"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
+  ["fc","fr","fexp","fcl","fsal","floc","fjd","fcon","ffu","frl","frm","fiq","fid","fit","favl","favop","frefn","frefp","frefm","frefl","fcpl","favhrn","favhrp","favhrm","fhrn","fhrp","fhrm"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  ["fav","favh","favo"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  ["fav-others-box","fav-himself-box","fav-link-box","fav-ref-box","fav-cp-box","fav-hr-box","fav-social-other-box"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
+  document.getElementById("hr-details-box").style.display="none";
   document.getElementById("fres").value="";document.getElementById("fst").value="Under Process";document.getElementById("fim").value="";
   onStChange();onResChange();
 }
 function fillForm(j){
   const s=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||"";};
   s("fc",j.company);s("fr",j.role);s("fexp",j.experience);s("fcl",j.client);s("fsal",j.salaryOffering);s("floc",j.location);s("fjd",j.jobDescription);
-  s("fav",j.appliedVia);s("favo",j.appliedViaOther);s("favl",j.appliedViaLink);
+  s("fav",j.appliedVia);s("favo",j.socialPlatform);s("favop",j.appliedViaOther);s("favl",j.appliedViaLink);
   s("favh",j.himselfHow);s("frefn",j.refName);s("frefp",j.refPhone);s("frefm",j.refEmail);s("frefl",j.refLinkedIn);
   s("fcpl",j.careerPortalLink);s("favhrn",j.appliedHrName);s("favhrp",j.appliedHrPhone);s("favhrm",j.appliedHrEmail);
-  onAppliedViaChange();onHimselfChange();
+  s("fhrn",j.hrName);s("fhrp",j.hrPhone);s("fhrm",j.hrEmail);
+  onAppliedViaChange();onHimselfChange();onSocialPlatformChange();
   s("fcon",j.mailContactedOn);s("ffu",j.followUpOn);s("fres",j.resumeEdited);s("frl",j.resumeLink);
   s("fst",j.status);s("frm",j.remarks);s("fiq",j.interviewQuestions);s("fid",j.interviewDate);s("fit",j.interviewTime);s("fim",j.interviewMode);
   onStChange();onResChange();
 }
 function gf(){
   const g=id=>(document.getElementById(id)||{}).value||"";
-  return {company:g("fc"),role:g("fr"),experience:g("fexp"),client:g("fcl"),salaryOffering:g("fsal"),location:g("floc"),jobDescription:g("fjd"),appliedVia:g("fav"),appliedViaOther:g("favo"),appliedViaLink:g("favl"),himselfHow:g("favh"),refName:g("frefn"),refPhone:g("frefp"),refEmail:g("frefm"),refLinkedIn:g("frefl"),careerPortalLink:g("fcpl"),appliedHrName:g("favhrn"),appliedHrPhone:g("favhrp"),appliedHrEmail:g("favhrm"),mailContactedOn:g("fcon"),followUpOn:g("ffu"),resumeEdited:g("fres"),resumeLink:g("frl"),status:g("fst"),remarks:g("frm"),interviewQuestions:g("fiq"),interviewDate:g("fid"),interviewTime:g("fit"),interviewMode:g("fim")};
+  return {company:g("fc"),role:g("fr"),experience:g("fexp"),client:g("fcl"),salaryOffering:g("fsal"),location:g("floc"),jobDescription:g("fjd"),appliedVia:g("fav"),socialPlatform:g("favo"),appliedViaOther:g("favop"),appliedViaLink:g("favl"),himselfHow:g("favh"),refName:g("frefn"),refPhone:g("frefp"),refEmail:g("frefm"),refLinkedIn:g("frefl"),careerPortalLink:g("fcpl"),appliedHrName:g("favhrn"),appliedHrPhone:g("favhrp"),appliedHrEmail:g("favhrm"),hrName:g("fhrn"),hrPhone:g("fhrp"),hrEmail:g("fhrm"),mailContactedOn:g("fcon"),followUpOn:g("ffu"),resumeEdited:g("fres"),resumeLink:g("frl"),status:g("fst"),remarks:g("frm"),interviewQuestions:g("fiq"),interviewDate:g("fid"),interviewTime:g("fit"),interviewMode:g("fim")};
 }
 window.onAppliedViaChange=()=>{
   const v=document.getElementById("fav").value;
-  document.getElementById("fav-others-box").style.display  = v==="Others"?"block":"none";
-  document.getElementById("fav-himself-box").style.display = v==="Himself"?"block":"none";
-  document.getElementById("fav-link-box").style.display    = (v==="LinkedIn"||v==="Naukri"||v==="Indeed"||v==="Others")?"block":"none";
+  document.getElementById("fav-others-box").style.display  = v==="Social Media"?"block":"none";
+  document.getElementById("fav-himself-box").style.display = v==="Self"?"block":"none";
+  document.getElementById("fav-link-box").style.display    = v==="Social Media"?"block":"none";
   // Reset sub-fields
-  if(v!=="Himself"){ document.getElementById("favh").value=""; onHimselfChange(); }
+  if(v!=="Self"){ document.getElementById("favh").value=""; onHimselfChange(); }
+  if(v!=="Social Media"){ 
+    const el=document.getElementById("favo"); if(el) el.value="";
+    onSocialPlatformChange();
+  }
+  updateHrVisibility();
 };
 window.onHimselfChange=()=>{
   const v=document.getElementById("favh").value;
   document.getElementById("fav-ref-box").style.display = v==="Referral"?"block":"none";
   document.getElementById("fav-cp-box").style.display  = v==="Career Portal"?"block":"none";
   document.getElementById("fav-hr-box").style.display  = v==="HR"?"block":"none";
+  updateHrVisibility();
+};
+window.onSocialPlatformChange=()=>{
+  const v=document.getElementById("favo")?.value||"";
+  const ob=document.getElementById("fav-social-other-box");
+  if(ob) ob.style.display = v==="Others"?"block":"none";
 };
 
 window.onStChange=()=>{
   const s=document.getElementById("fst").value;
   document.getElementById("iv-box").style.display=(s==="Interview Scheduled"||s==="Interviewed")?"block":"none";
+  updateHrVisibility();
 };
+
+function needsHrOnStatus(){
+  // Returns true if HR Details should show based on source+status combo
+  const via=document.getElementById("fav").value;
+  const how=document.getElementById("favh").value;
+  const st=document.getElementById("fst").value;
+  const nonApplied=["Under Process","Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
+  // Self → HR: always show
+  if(via==="Self" && how==="HR") return true;
+  // Social Media, Self→Career Portal, Self→Referral: show only when status != Applied
+  if(via==="Social Media") return nonApplied.includes(st);
+  if(via==="Self" && how==="Career Portal") return nonApplied.includes(st);
+  if(via==="Self" && how==="Referral") return nonApplied.includes(st);
+  return false;
+}
+
+function updateHrVisibility(){
+  document.getElementById("hr-details-box").style.display = needsHrOnStatus()?"block":"none";
+}
 window.onResChange=()=>document.getElementById("res-box").style.display=document.getElementById("fres").value==="Yes"?"block":"none";
 window.saveJob=async()=>{
   const d=gf();if(!d.company||!d.role)return toast("Company & Role required!","error");
@@ -1046,7 +1093,8 @@ window.openView=id=>{
             ${j.experience?`<div class="ipill" style="background:#38BDF818;border-color:#38BDF830"><span class="pl" style="color:#38BDF8">Exp</span><span class="pv" style="color:#38BDF8">${x(j.experience)}</span></div>`:""}
             ${j.salaryOffering?`<div class="ipill" style="background:#4ADE8018;border-color:#4ADE8030"><span class="pl" style="color:#4ADE80">Salary</span><span class="pv" style="color:#4ADE80">${x(j.salaryOffering)}</span></div>`:""}
             ${j.location?`<div class="ipill" style="background:#38BDF818;border-color:#38BDF830"><span class="pl" style="color:#38BDF8">Location</span><span class="pv" style="color:#38BDF8">${x(j.location)}</span></div>`:""}
-            ${j.appliedVia?`<div class="ipill" style="background:#7DD3FC18;border-color:#7DD3FC30"><span class="pl" style="color:#7DD3FC">Applied Via</span><span class="pv" style="color:#7DD3FC">${x(j.appliedVia)}${j.himselfHow?" · "+x(j.himselfHow):""}</span></div>`:""}
+            ${j.appliedVia?`<div class="ipill" style="background:#7DD3FC18;border-color:#7DD3FC30"><span class="pl" style="color:#7DD3FC">Applied Via</span><span class="pv" style="color:#7DD3FC">${x(j.appliedVia)}${j.socialPlatform?" · "+x(j.socialPlatform):""}${j.himselfHow?" · "+x(j.himselfHow):""}</span></div>`:""}
+            ${j.hrName?`<div class="ipill" style="background:#38BDF818;border-color:#38BDF830"><span class="pl" style="color:#38BDF8">HR</span><span class="pv" style="color:#38BDF8">${x(j.hrName)}${j.hrPhone?" · "+x(j.hrPhone):""}</span></div>`:""}
             ${j.mailContactedOn?`<div class="ipill" style="background:#F59E0B18;border-color:#F59E0B30"><span class="pl" style="color:#F59E0B">Contacted</span><span class="pv" style="color:#F59E0B">${j.mailContactedOn}</span></div>`:""}
             ${j.followUpOn?`<div class="ipill" style="background:#C084FC18;border-color:#C084FC30"><span class="pl" style="color:#C084FC">Follow-up</span><span class="pv" style="color:#C084FC">${j.followUpOn}</span></div>`:""}
             ${isIv&&j.interviewDate?`<div class="ipill" style="background:#60A5FA18;border-color:#60A5FA30"><span class="pl" style="color:#60A5FA">Interview</span><span class="pv" style="color:#60A5FA">${j.interviewDate}${j.interviewTime?" · "+fmt12(j.interviewTime):""}</span></div>`:""}
@@ -1106,8 +1154,8 @@ window.confirmDel=id=>{
 // EXPORT
 function doExcelExport(){
   const XLSX=window.XLSX;
-  const hdrs=["Sl. No","Company","Role","Job Description","Experience","Client","Salary","Location","Applied Via","How","Ref Name","Ref Phone","Ref Email","Ref LinkedIn","Career Portal Link","Applied HR Name","Applied HR Phone","Applied HR Email","Job Link","Resume Edited","Resume Link","Contacted On","Follow-up","Interview Date","Interview Time","Interview Mode","Status","Remarks","Interview Questions"];
-  const rows=jobs.map((j,i)=>[i+1,j.company||"",j.role||"",j.jobDescription||"",j.experience||"",j.client||"",j.salaryOffering||"",j.location||"",j.appliedVia||"",j.himselfHow||"",j.refName||"",j.refPhone||"",j.refEmail||"",j.refLinkedIn||"",j.careerPortalLink||"",j.appliedHrName||"",j.appliedHrPhone||"",j.appliedHrEmail||"",j.appliedViaLink||"",j.resumeEdited||"",j.resumeLink||"",j.mailContactedOn||"",j.followUpOn||"",j.interviewDate||"",j.interviewTime||"",j.interviewMode||"",j.status||"",j.remarks||"",(j.interviewQuestions||"").replace(/\n/g," | ")]);
+  const hdrs=["Sl. No","Company","Role","Job Description","Experience","Client","Salary","Location","Applied Via","Platform","How","HR Name","HR Phone","HR Email","Ref Name","Ref Phone","Ref Email","Ref LinkedIn","Career Portal Link","Applied HR Name","Applied HR Phone","Applied HR Email","Job Link","Resume Edited","Resume Link","Contacted On","Follow-up","Interview Date","Interview Time","Interview Mode","Status","Remarks","Interview Questions"];
+  const rows=jobs.map((j,i)=>[i+1,j.company||"",j.role||"",j.jobDescription||"",j.experience||"",j.client||"",j.salaryOffering||"",j.location||"",j.appliedVia||"",j.socialPlatform||"",j.himselfHow||"",j.hrName||"",j.hrPhone||"",j.hrEmail||"",j.refName||"",j.refPhone||"",j.refEmail||"",j.refLinkedIn||"",j.careerPortalLink||"",j.appliedHrName||"",j.appliedHrPhone||"",j.appliedHrEmail||"",j.appliedViaLink||"",j.resumeEdited||"",j.resumeLink||"",j.mailContactedOn||"",j.followUpOn||"",j.interviewDate||"",j.interviewTime||"",j.interviewMode||"",j.status||"",j.remarks||"",(j.interviewQuestions||"").replace(/\n/g," | ")]);
   const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([hdrs,...rows]);
   ws["!cols"]=[{wch:5},{wch:22},{wch:20},{wch:32},{wch:12},{wch:18},{wch:18},{wch:28},{wch:14},{wch:14},{wch:16},{wch:36},{wch:18},{wch:14},{wch:16},{wch:14},{wch:18},{wch:22},{wch:24},{wch:48}];
   ws["!sheetViews"]=[{state:"frozen",ySplit:1,topLeftCell:"A2",activeCell:"A2",sqref:"A2"}];
