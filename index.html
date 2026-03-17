@@ -1076,57 +1076,51 @@ window.navTo=btn=>{document.querySelectorAll(".nitem").forEach(b=>b.classList.re
 const mf={name:"Job Tracker",short_name:"Job Tracker",start_url:"./",display:"standalone",background_color:"#0F172A",theme_color:"#0F172A",orientation:"portrait",icons:[{src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230EA5E9'/><text y='.9em' font-size='80'>💼</text></svg>",sizes:"any",type:"image/svg+xml"}]};
 document.getElementById("pwa-manifest").href=URL.createObjectURL(new Blob([JSON.stringify(mf)],{type:"application/json"}));
 
-// Handle Android/mobile back button
-let backPressCount = 0, backPressTimer = null;
+// Back button / exit handling
+let exitShowing = false;
+
+function showExitPopup(){
+  if(exitShowing) return;
+  exitShowing = true;
+  const popup = document.getElementById("exit-popup");
+  popup.style.display = "flex";
+  // Push extra state so next back closes popup instead of exiting
+  history.pushState({page:"exit"}, "");
+}
 
 function closeExitPopup(){
-  document.getElementById("exit-popup").style.display="none";
-  backPressCount = 0;
-  history.pushState({page:"home"}, "");
+  exitShowing = false;
+  document.getElementById("exit-popup").style.display = "none";
 }
 
 window.addEventListener("popstate", e => {
-  // Close view modal if open
+  // Close view modal instantly
   const viewOvl = document.getElementById("view-ovl");
   if(viewOvl && viewOvl.style.display === "flex"){
     viewOvl.style.display = "none";
     history.pushState({page:"home"}, "");
     return;
   }
-  // Close form modal if open
+  // Close form modal instantly
   const formOvl = document.getElementById("form-ovl");
   if(formOvl && formOvl.style.display === "flex"){
     formOvl.style.display = "none";
     history.pushState({page:"home"}, "");
     return;
   }
-  // Close exit popup if open (second back = exit)
-  const exitPopup = document.getElementById("exit-popup");
-  if(exitPopup && exitPopup.style.display === "flex"){
-    exitPopup.style.display = "none";
-    backPressCount = 0;
-    return; // allow browser to go back/exit naturally
+  // If exit popup showing — close it and let back continue (exits browser)
+  if(exitShowing){
+    closeExitPopup();
+    return;
   }
-  // On home screen — first back shows popup, second back exits
+  // On home — show exit popup immediately
   const appScreen = document.getElementById("app-screen");
   if(appScreen && (appScreen.style.display === "flex" || appScreen.classList.contains("on"))){
-    backPressCount++;
-    if(backPressTimer) clearTimeout(backPressTimer);
-    if(backPressCount === 1){
-      // Show exit popup
-      exitPopup.style.display = "flex";
-      history.pushState({page:"home"}, "");
-      // Auto-dismiss after 4 seconds
-      backPressTimer = setTimeout(()=>{
-        exitPopup.style.display = "none";
-        backPressCount = 0;
-        history.pushState({page:"home"}, "");
-      }, 4000);
-    }
+    showExitPopup();
   }
 });
 
-// Push initial state so first back press doesn't exit
+// Push initial home state on load
 window.addEventListener("load", () => {
   history.pushState({page:"home"}, "");
 });
