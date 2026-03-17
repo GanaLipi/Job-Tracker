@@ -999,6 +999,13 @@ function clearForm(){
   document.getElementById("feedback-box").style.display="none";
   document.getElementById("fres").value="";document.getElementById("fst").value="Applied";document.getElementById("fim").value="";
   onStChange();onResChange();
+  // Unlock all dropdowns for new application
+  ["fav","favh","favo"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.disabled=false; el.style.opacity="1"; el.style.cursor="pointer"; el.title=""; }
+  });
+  const fstEl=document.getElementById("fst");
+  if(fstEl){ Array.from(fstEl.options).forEach(o=>o.disabled=false); }
 }
 function fillForm(j){
   const s=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||"";};
@@ -1008,6 +1015,23 @@ function fillForm(j){
   s("fcpl",j.careerPortalLink);s("favhrn",j.appliedHrName);s("favhrp",j.appliedHrPhone);s("favhrm",j.appliedHrEmail);
   s("fhrn",j.hrName);s("fhrp",j.hrPhone);s("fhrm",j.hrEmail);
   onAppliedViaChange();onHimselfChange();onSocialPlatformChange();
+  // Lock source/how/platform dropdowns visually if past Applied
+  const pastApplied=["Under Process","Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
+  const isPast = pastApplied.includes(j.status);
+  ["fav","favh","favo"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){
+      el.disabled=isPast;
+      el.style.opacity=isPast?"0.6":"1";
+      el.style.cursor=isPast?"not-allowed":"pointer";
+      el.title=isPast?"Locked: source cannot change after Under Process":"";
+    }
+  });
+  // Also lock Applied status option
+  const fstEl=document.getElementById("fst");
+  if(fstEl && isPast){
+    Array.from(fstEl.options).forEach(o=>{ if(o.value==="Applied") o.disabled=true; });
+  }
   s("fcon",j.mailContactedOn);s("ffu",j.followUpOn);s("fres",j.resumeEdited);s("frl",j.resumeLink);
   s("fst",j.status);s("frm",j.remarks);s("ffb",j.feedback);s("fiq",j.interviewQuestions);s("fid",j.interviewDate);s("fit",j.interviewTime);s("fim",j.interviewMode);
   onStChange();onResChange();
@@ -1017,19 +1041,32 @@ function gf(){
   return {company:g("fc"),role:g("fr"),experience:g("fexp"),client:g("fcl"),salaryOffering:g("fsal"),location:g("floc"),jobDescription:g("fjd"),appliedVia:g("fav"),socialPlatform:g("favo"),appliedViaOther:g("favop"),appliedViaLink:g("favl"),himselfHow:g("favh"),refName:g("frefn"),refPhone:g("frefp"),refEmail:g("frefm"),refLinkedIn:g("frefl"),careerPortalLink:g("fcpl"),appliedHrName:g("favhrn"),appliedHrPhone:g("favhrp"),appliedHrEmail:g("favhrm"),hrName:g("fhrn"),hrPhone:g("fhrp"),hrEmail:g("fhrm"),mailContactedOn:g("fcon"),followUpOn:g("ffu"),resumeEdited:g("fres"),resumeLink:g("frl"),status:g("fst"),remarks:g("frm"),feedback:g("ffb"),interviewQuestions:g("fiq"),interviewDate:g("fid"),interviewTime:g("fit"),interviewMode:g("fim")};
 }
 window.onAppliedViaChange=()=>{
+  // Lock source dropdown if job has moved past Applied
+  if(_isPastApplied()){
+    const job=jobs.find(j=>j.id===editId);
+    if(job){ document.getElementById("fav").value=job.appliedVia||""; }
+    toast("Applied Via source cannot be changed once status has moved to Under Process!","error");
+    return;
+  }
   const v=document.getElementById("fav").value;
   document.getElementById("fav-others-box").style.display  = v==="Social Media"?"block":"none";
   document.getElementById("fav-himself-box").style.display = v==="Self"?"block":"none";
   document.getElementById("fav-link-box").style.display    = v==="Social Media"?"block":"none";
-  // Reset sub-fields
   if(v!=="Self"){ document.getElementById("favh").value=""; onHimselfChange(); }
-  if(v!=="Social Media"){ 
+  if(v!=="Social Media"){
     const el=document.getElementById("favo"); if(el) el.value="";
     onSocialPlatformChange();
   }
   updateHrVisibility();
 };
 window.onHimselfChange=()=>{
+  // Lock "how" dropdown if job has moved past Applied
+  if(_isPastApplied()){
+    const job=jobs.find(j=>j.id===editId);
+    if(job){ document.getElementById("favh").value=job.himselfHow||""; }
+    toast("Applied Via method cannot be changed once status has moved to Under Process!","error");
+    return;
+  }
   const v=document.getElementById("favh").value;
   document.getElementById("fav-ref-box").style.display = v==="Referral"?"block":"none";
   document.getElementById("fav-cp-box").style.display  = v==="Career Portal"?"block":"none";
@@ -1037,6 +1074,13 @@ window.onHimselfChange=()=>{
   updateHrVisibility();
 };
 window.onSocialPlatformChange=()=>{
+  // Lock platform if past Applied
+  if(_isPastApplied()){
+    const job=jobs.find(j=>j.id===editId);
+    if(job){ const el=document.getElementById("favo"); if(el) el.value=job.socialPlatform||""; }
+    toast("Social Media platform cannot be changed once status has moved to Under Process!","error");
+    return;
+  }
   const v=document.getElementById("favo")?.value||"";
   const ob=document.getElementById("fav-social-other-box");
   if(ob) ob.style.display = v==="Others"?"block":"none";
@@ -1045,6 +1089,14 @@ window.onSocialPlatformChange=()=>{
 window.onStChange=()=>{
   const s=document.getElementById("fst").value;
   const fst=document.getElementById("fst");
+
+  // Block going back to Applied once past Under Process
+  if(s==="Applied" && _isPastApplied()){
+    const job=jobs.find(j=>j.id===editId);
+    if(job){ fst.value=job.status; }
+    toast("Cannot move back to Applied once status has progressed!","error");
+    return;
+  }
 
   // Block status change if Applied Via mandatory fields are not filled
   if(s !== "Applied"){
@@ -1099,6 +1151,15 @@ window.onStChange=()=>{
   document.getElementById("feedback-box").style.display=s==="Rejected"?"block":"none";
   updateHrVisibility();
 };
+
+// Check if current job being edited has moved past Applied
+function _isPastApplied(){
+  if(!editId) return false;
+  const job=jobs.find(j=>j.id===editId);
+  if(!job) return false;
+  const past=["Under Process","Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
+  return past.includes(job.status);
+}
 
 function needsHrOnStatus(){
   const via=document.getElementById("fav").value;
