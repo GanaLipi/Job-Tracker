@@ -917,7 +917,7 @@ window.openEdit=id=>{
   document.getElementById("form-title").textContent="✏️ Edit Application";
   fillForm(j);document.getElementById("form-ovl").style.display="flex";document.getElementById("view-ovl").style.display="none";
 };
-window.closeForm=()=>{document.getElementById("form-ovl").style.display="none";};
+// closeForm defined below in back button section
 
 function clearForm(){
   ["fc","fr","fexp","fcl","fsal","fjd","fhn","fhp","fhm","fcon","ffu","frl","frm","fiq","fid","fit"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
@@ -1083,72 +1083,54 @@ document.getElementById("pwa-manifest").href=URL.createObjectURL(new Blob([JSON.
 
 // ── BACK BUTTON / EXIT HANDLING ──────────────────────────
 
-// ── PAGE STACK / BACK BUTTON ─────────────────────────────
-// Keep a simple stack of what is open
-const _pageStack = [];
+// ── BACK BUTTON ──────────────────────────────────────────
+function _ft(){ document.getElementById("focus-trap").focus(); }
 
 function _currentPage(){
-  const form = document.getElementById("form-ovl");
-  const view = document.getElementById("view-ovl");
-  const exit = document.getElementById("exit-popup");
-  if(form && form.style.display==="flex") return "form";
-  if(view && view.style.display==="flex") return "view";
-  if(exit && exit.style.display==="flex") return "exit";
+  if(document.getElementById("form-ovl").style.display==="flex") return "form";
+  if(document.getElementById("view-ovl").style.display==="flex") return "view";
+  if(document.getElementById("exit-popup").style.display==="flex") return "exit";
   return "home";
-}
-
-function _goBack(){
-  const cur = _currentPage();
-  if(cur==="form"){
-    document.getElementById("form-ovl").style.display="none";
-    _pageStack.pop();
-  } else if(cur==="view"){
-    document.getElementById("view-ovl").style.display="none";
-    _pageStack.pop();
-  } else if(cur==="exit"){
-    document.getElementById("exit-popup").style.display="none";
-    _pageStack.pop();
-  } else {
-    // On home — show exit popup
-    document.getElementById("exit-popup").style.display="flex";
-    _pageStack.push("exit");
-    history.pushState({page:"exit"},"");
-  }
 }
 
 function closeViewOvl(){
   document.getElementById("view-ovl").style.display="none";
-  if(_pageStack.length) _pageStack.pop();
-  setTimeout(()=>document.getElementById("focus-trap").focus(),50);
+  history.pushState({p:"home"},"");
+  _ft();
 }
 window.closeViewOvl = closeViewOvl;
 
 window.closeForm = ()=>{
   document.getElementById("form-ovl").style.display="none";
-  if(_pageStack.length) _pageStack.pop();
-  setTimeout(()=>document.getElementById("focus-trap").focus(),50);
+  history.pushState({p:"home"},"");
+  _ft();
 };
 
 function closeExitPopup(){
   document.getElementById("exit-popup").style.display="none";
-  if(_pageStack.length) _pageStack.pop();
-  setTimeout(()=>document.getElementById("focus-trap").focus(),50);
+  history.pushState({p:"home"},"");
+  _ft();
 }
 
 function pushModal(name){
-  _pageStack.push(name||"modal");
-  history.pushState({page:name||"modal"},"");
+  history.pushState({p:name},"");
 }
 
-// popstate — fires when back is pressed
-window.addEventListener("popstate", function(e){
-  _goBack();
-  // Always keep a state in the stack so back keeps firing
-  if(_currentPage()==="home"){
-    history.pushState({page:"home"},"");
+window.addEventListener("popstate", function(){
+  const cur = _currentPage();
+  if(cur==="form"){
+    document.getElementById("form-ovl").style.display="none";
+  } else if(cur==="view"){
+    document.getElementById("view-ovl").style.display="none";
+  } else if(cur==="exit"){
+    document.getElementById("exit-popup").style.display="none";
+    return;
+  } else {
+    document.getElementById("exit-popup").style.display="flex";
+    history.pushState({p:"exit"},"");
   }
-  // Re-focus page so next back press fires without needing a click
-  setTimeout(()=>{ document.getElementById("focus-trap").focus(); }, 50);
+  history.pushState({p:"home"},"");
+  _ft();
 });
 
 // BOOTSTRAP
