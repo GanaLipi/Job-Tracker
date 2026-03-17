@@ -431,7 +431,7 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
 </div>
 
 <!-- VIEW MODAL -->
-<div class="ovl" id="view-ovl" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+<div class="ovl" id="view-ovl" style="display:none" onclick="if(event.target===this){history.back();}">
   <div class="vmModal" id="vm-content"></div>
 </div>
 
@@ -891,13 +891,13 @@ window.toggleNotif=(jid,en)=>{
 };
 
 // FORM
-window.openAdd=()=>{editId=null;document.getElementById("form-title").textContent="➕ New Application";clearForm();document.getElementById("form-ovl").style.display="flex";};
+window.openAdd=()=>{editId=null;document.getElementById("form-title").textContent="➕ New Application";clearForm();document.getElementById("form-ovl").style.display="flex";history.pushState({modal:"form"},"");};
 window.openEdit=id=>{
   const j=jobs.find(x=>x.id===id);if(!j)return;editId=id;
   document.getElementById("form-title").textContent="✏️ Edit Application";
-  fillForm(j);document.getElementById("form-ovl").style.display="flex";document.getElementById("view-ovl").style.display="none";
+  fillForm(j);document.getElementById("form-ovl").style.display="flex";document.getElementById("view-ovl").style.display="none";history.pushState({modal:"form"},"");
 };
-window.closeForm=()=>document.getElementById("form-ovl").style.display="none";
+window.closeForm=()=>{document.getElementById("form-ovl").style.display="none";};
 
 function clearForm(){
   ["fc","fr","fexp","fcl","fsal","fjd","fhn","fhp","fhm","fcon","ffu","frl","frm","fiq","fid","fit"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
@@ -939,7 +939,7 @@ window.openView=id=>{
       <div><div class="mtitle">👁 Application Preview</div><div class="msub">${x(j.company)} · ${x(j.role)}</div></div>
       <div style="display:flex;gap:7px">
         <button onclick="openEdit('${id}')" style="padding:6px 12px;border-radius:8px;border:1px solid #334155;background:#0F172A;color:#94A3B8;font-size:12px;font-weight:600;cursor:pointer">✏️ Edit</button>
-        <button onclick="document.getElementById('view-ovl').style.display='none'" style="padding:6px 12px;border-radius:8px;border:none;background:linear-gradient(135deg,#38BDF8,#0EA5E9);color:#fff;font-size:12px;font-weight:700;cursor:pointer">✕ Close</button>
+        <button onclick="history.back()" style="padding:6px 12px;border-radius:8px;border:none;background:linear-gradient(135deg,#38BDF8,#0EA5E9);color:#fff;font-size:12px;font-weight:700;cursor:pointer">✕ Close</button>
       </div>
     </div>
     <div style="padding:16px 18px;display:grid;gap:12px">
@@ -1002,6 +1002,7 @@ window.openView=id=>{
       </div>`:""}
     </div>`;
   document.getElementById("view-ovl").style.display="flex";
+  history.pushState({modal:"view"},"");
 };
 window.swPrev=show=>{
   const iv=document.getElementById("prev-iv"),lk=document.getElementById("prev-lk"),pt=document.getElementById("ptab-iv"),pl=document.getElementById("ptab-lk");
@@ -1060,6 +1061,30 @@ window.navTo=btn=>{document.querySelectorAll(".nitem").forEach(b=>b.classList.re
 // PWA Manifest
 const mf={name:"Job Tracker",short_name:"Job Tracker",start_url:"./",display:"standalone",background_color:"#0F172A",theme_color:"#0F172A",orientation:"portrait",icons:[{src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230EA5E9'/><text y='.9em' font-size='80'>💼</text></svg>",sizes:"any",type:"image/svg+xml"}]};
 document.getElementById("pwa-manifest").href=URL.createObjectURL(new Blob([JSON.stringify(mf)],{type:"application/json"}));
+
+// Handle Android/mobile back button
+window.addEventListener("popstate", e => {
+  // Close view modal if open
+  const viewOvl = document.getElementById("view-ovl");
+  if(viewOvl && viewOvl.style.display === "flex"){
+    viewOvl.style.display = "none"; return;
+  }
+  // Close form modal if open
+  const formOvl = document.getElementById("form-ovl");
+  if(formOvl && formOvl.style.display === "flex"){
+    formOvl.style.display = "none"; return;
+  }
+  // If on app screen, push a state to prevent browser exit
+  const appScreen = document.getElementById("app-screen");
+  if(appScreen && (appScreen.style.display === "flex" || appScreen.classList.contains("on"))){
+    history.pushState({page:"home"}, "");
+  }
+});
+
+// Push initial state so first back press doesn't exit
+window.addEventListener("load", () => {
+  history.pushState({page:"home"}, "");
+});
 
 // BOOTSTRAP
 async function boot(){
