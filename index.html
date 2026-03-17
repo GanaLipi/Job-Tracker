@@ -430,10 +430,12 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
               <div class="fld"><label>Referral Email <span style="color:#F87171">*</span></label><input id="frefm" type="email" placeholder="referral@email.com"/></div>
             </div>
             <div class="fld" style="margin-top:8px"><label>LinkedIn Connection? (optional)</label><input id="frefl" placeholder="LinkedIn profile URL (optional)"/></div>
+            <div style="font-size:11px;color:#64748B;margin-top:6px">* Referral Name is required. Provide at least Phone or Email.</div>
           </div>
           <!-- Career Portal fields -->
           <div id="fav-cp-box" style="display:none">
             <div class="fld"><label>Career Portal Link <span style="color:#F87171">*</span></label><input id="fcpl" placeholder="https://careers.company.com/..."/></div>
+            <div style="font-size:11px;color:#64748B;margin-top:6px">* Career Portal Link is required.</div>
           </div>
           <!-- HR fields -->
           <div id="fav-hr-box" style="display:none">
@@ -1108,14 +1110,14 @@ window.onStChange=()=>{
         const rn=(document.getElementById("frefn")||{}).value||"";
         const rp=(document.getElementById("frefp")||{}).value||"";
         const rm=(document.getElementById("frefm")||{}).value||"";
-        if(!rn){ toast("Referral Name is required!","error"); fst.value="Applied"; return; }
-        if(!rp && !rm){ toast("Referral Phone or Email is required!","error"); fst.value="Applied"; return; }
+        if(!rn){ toast("Kindly enter the Referral Name to proceed.","error"); fst.value="Applied"; return; }
+        if(!rp && !rm){ toast("Kindly enter at least one contact detail for the Referral — Phone or Email.","error"); fst.value="Applied"; return; }
       }
 
       // Career Portal — link mandatory
       if(how==="Career Portal"){
         const cp=(document.getElementById("fcpl")||{}).value||"";
-        if(!cp){ toast("Career Portal Link is required!","error"); fst.value="Applied"; return; }
+        if(!cp){ toast("Kindly enter the Career Portal Link to proceed.","error"); fst.value="Applied"; return; }
       }
 
       // HR — name + phone or email mandatory
@@ -1123,8 +1125,8 @@ window.onStChange=()=>{
         const hn=(document.getElementById("favhrn")||{}).value||"";
         const hp=(document.getElementById("favhrp")||{}).value||"";
         const hm=(document.getElementById("favhrm")||{}).value||"";
-        if(!hn){ toast("HR Name is required in Applied Via!","error"); fst.value="Applied"; return; }
-        if(!hp && !hm){ toast("HR Phone or Email is required in Applied Via!","error"); fst.value="Applied"; return; }
+        if(!hn){ toast("Kindly enter the HR Name in Applied Via to proceed.","error"); fst.value="Applied"; return; }
+        if(!hp && !hm){ toast("Kindly enter at least one contact detail for the HR — Phone or Email.","error"); fst.value="Applied"; return; }
       }
     }
   }
@@ -1185,34 +1187,34 @@ window.saveJob=async()=>{
   // Validate Social Media job link
   const linkBox=document.getElementById("fav-link-box");
   if(linkBox && linkBox.style.display==="block"){
-    if(!d.appliedViaLink.trim()) return toast("Job Posting Link is required!","error");
+    if(!d.appliedViaLink.trim()) return toast("Kindly enter the Job Posting Link before saving.","error");
   }
 
   // Validate Career Portal link
   const cpBox=document.getElementById("fav-cp-box");
   if(cpBox && cpBox.style.display==="block"){
-    if(!d.careerPortalLink.trim()) return toast("Career Portal Link is required!","error");
+    if(!d.careerPortalLink.trim()) return toast("Kindly enter the Career Portal Link before saving.","error");
   }
 
   // Validate Applied Via → Self → HR fields
   const hrViaBox=document.getElementById("fav-hr-box");
   if(hrViaBox && hrViaBox.style.display==="block"){
-    if(!d.appliedHrName.trim()) return toast("HR Name is required in Applied Via!","error");
-    if(!d.appliedHrPhone.trim() && !d.appliedHrEmail.trim()) return toast("HR Phone or Email is required in Applied Via!","error");
+    if(!d.appliedHrName.trim()) return toast("Kindly enter the HR Name in the Applied Via section.","error");
+    if(!d.appliedHrPhone.trim() && !d.appliedHrEmail.trim()) return toast("Kindly enter at least one contact for HR — Phone or Email — in Applied Via.","error");
   }
 
   // Validate Applied Via → Self → Referral fields
   const refBox=document.getElementById("fav-ref-box");
   if(refBox && refBox.style.display==="block"){
-    if(!d.refName.trim()) return toast("Referral Name is required!","error");
-    if(!d.refPhone.trim() && !d.refEmail.trim()) return toast("Referral Phone or Email is required!","error");
+    if(!d.refName.trim()) return toast("Kindly enter the Referral Name in the Applied Via section.","error");
+    if(!d.refPhone.trim() && !d.refEmail.trim()) return toast("Kindly enter at least one contact for the Referral — Phone or Email.","error");
   }
 
   // Validate HR Details box (Under Process+)
   const hrBox=document.getElementById("hr-details-box");
   if(hrBox && hrBox.style.display==="block"){
-    if(!d.hrName.trim()) return toast("HR Name is required!","error");
-    if(!d.hrPhone.trim() && !d.hrEmail.trim()) return toast("HR Phone or Email is required!","error");
+    if(!d.hrName.trim()) return toast("Kindly enter the HR Name in the HR Details section.","error");
+    if(!d.hrPhone.trim() && !d.hrEmail.trim()) return toast("Kindly enter at least one contact for HR — Phone or Email — in HR Details.","error");
   }
 
   try{editId?await updateJob(editId,d):await addJob(d);closeForm();toast(editId?"✅ Updated!":"🎉 Application added!");}catch(e){toast("Error: "+e.message,"error");}
