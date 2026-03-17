@@ -1080,10 +1080,6 @@ window.onStChange=()=>{
     toast("The status cannot be moved back to Applied once it has progressed.","error");
     return;
   }
-  // Lock Applied Via when moving to Under Process or beyond
-  const pastStatuses=["Under Process","Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
-  if(pastStatuses.includes(s)) _lockAppliedVia(true);
-
   // Block status change if Applied Via mandatory fields are not filled
   if(s !== "Applied"){
     const via=document.getElementById("fav").value;
@@ -1132,6 +1128,10 @@ window.onStChange=()=>{
       }
     }
   }
+
+  // All validation passed — now lock Applied Via if moving past Applied
+  const pastStatuses=["Under Process","Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
+  if(pastStatuses.includes(s)) _lockAppliedVia(true);
 
   document.getElementById("iv-box").style.display=(s==="Interview Scheduled"||s==="Interviewed")?"block":"none";
   document.getElementById("feedback-box").style.display=s==="Rejected"?"block":"none";
