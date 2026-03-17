@@ -207,7 +207,7 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
 <script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-firestore-compat.min.js"
   onerror="window._fbLoadErr=true"></script>
 </head>
-<body tabindex="-1">
+<body>
 
 <div id="loading">
   <div style="width:50px;height:50px;border-radius:15px;background:linear-gradient(135deg,#38BDF8,#0EA5E9);display:flex;align-items:center;justify-content:center;font-size:25px">💼</div>
@@ -519,8 +519,6 @@ function showLocalApp() {
   document.getElementById("btn-add").style.display = "flex";
   setSyncStatus("ok", "Saved locally");
   renderAll();
-  history.replaceState(null,"","#app");
-  history.pushState(null,"","#app");
 }
 
 function initFB() {
@@ -593,8 +591,6 @@ function showApp(user) {
   document.getElementById("btn-add").style.display="flex";
   setSyncStatus("syn","Syncing...");
   subscribeJobs(user.uid);
-  history.replaceState(null,"","#app");
-  history.pushState(null,"","#app");
 }
 function hide(id){document.getElementById(id).style.display="none"}
 function gs(id,d){const e=document.getElementById(id);if(d)e.style.display=d;return e}
@@ -909,11 +905,11 @@ window.toggleNotif=(jid,en)=>{
 };
 
 // FORM
-window.openAdd=()=>{editId=null;document.getElementById("form-title").textContent="➕ New Application";clearForm();document.getElementById("form-ovl").style.display="flex";history.pushState(null,"");};
+window.openAdd=()=>{editId=null;document.getElementById("form-title").textContent="➕ New Application";clearForm();document.getElementById("form-ovl").style.display="flex"};
 window.openEdit=id=>{
   const j=jobs.find(x=>x.id===id);if(!j)return;editId=id;
   document.getElementById("form-title").textContent="✏️ Edit Application";
-  fillForm(j);document.getElementById("form-ovl").style.display="flex";document.getElementById("view-ovl").style.display="none";history.pushState(null,"");
+  fillForm(j);document.getElementById("form-ovl").style.display="flex";document.getElementById("view-ovl").style.display="none";
 };
 window.closeForm=()=>{document.getElementById("form-ovl").style.display="none";};
 
@@ -1020,8 +1016,7 @@ window.openView=id=>{
       </div>`:""}
     </div>`;
   document.getElementById("view-ovl").style.display="flex";
-  history.pushState(null,"");
-};
+  };
 window.swPrev=show=>{
   const iv=document.getElementById("prev-iv"),lk=document.getElementById("prev-lk"),pt=document.getElementById("ptab-iv"),pl=document.getElementById("ptab-lk");
   if(iv)iv.style.display=show?"block":"none";if(lk)lk.style.display=show?"none":"block";
@@ -1082,52 +1077,58 @@ document.getElementById("pwa-manifest").href=URL.createObjectURL(new Blob([JSON.
 
 // ── BACK BUTTON / EXIT HANDLING ──────────────────────────
 
-// Force page focus so back button always works without clicking body
-function refocus(){ document.body.focus(); document.body.click(); }
-
-function closeViewOvl(){
-  document.getElementById("view-ovl").style.display="none";
-  history.pushState(null,""); refocus();
-}
+function closeViewOvl(){ document.getElementById("view-ovl").style.display="none"; }
 window.closeViewOvl = closeViewOvl;
+window.closeForm = ()=>{ document.getElementById("form-ovl").style.display="none"; };
+function closeExitPopup(){ document.getElementById("exit-popup").style.display="none"; }
+function pushModal(){}
 
-window.closeForm = ()=>{
-  document.getElementById("form-ovl").style.display="none";
-  history.pushState(null,""); refocus();
-};
-
-function closeExitPopup(){
-  document.getElementById("exit-popup").style.display="none";
-  history.pushState(null,""); refocus();
-}
-
-function pushModal(){
-  history.pushState(null,"");
-}
-
-function handleBack(){
-  const formOvl   = document.getElementById("form-ovl");
-  const viewOvl   = document.getElementById("view-ovl");
-  const exitPopup = document.getElementById("exit-popup");
-  const appScreen = document.getElementById("app-screen");
-  const appOpen   = appScreen && (appScreen.style.display==="flex" || appScreen.classList.contains("on"));
-
-  if(formOvl   && formOvl.style.display  ==="flex"){ formOvl.style.display="none";   history.pushState(null,""); refocus(); return; }
-  if(viewOvl   && viewOvl.style.display  ==="flex"){ viewOvl.style.display="none";   history.pushState(null,""); refocus(); return; }
-  if(exitPopup && exitPopup.style.display==="flex"){  exitPopup.style.display="none"; return; }
-  if(appOpen){ exitPopup.style.display="flex"; history.pushState(null,""); return; }
-}
-
-document.addEventListener("keydown", e=>{
-  if(e.key==="Backspace" && !["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)){
-    e.preventDefault(); handleBack();
+// ── EXIT POPUP on back button ─────────────────────────────
+// Works by detecting swipe-from-left-edge (Android back gesture)
+// and Alt+Left / Backspace on desktop
+(function(){
+  function isAppHome(){
+    const a=document.getElementById("app-screen");
+    const f=document.getElementById("form-ovl");
+    const v=document.getElementById("view-ovl");
+    const appOpen = a && (a.style.display==="flex"||a.classList.contains("on"));
+    const modalOpen = (f&&f.style.display==="flex")||(v&&v.style.display==="flex");
+    return appOpen && !modalOpen;
   }
-});
 
-window.addEventListener("popstate", ()=>{
-  handleBack();
-  history.pushState(null,"");
-});
+  function showExit(){
+    document.getElementById("exit-popup").style.display="flex";
+  }
+
+  // Desktop: Alt+Left arrow
+  document.addEventListener("keydown", e=>{
+    if(e.altKey && e.key==="ArrowLeft"){
+      e.preventDefault();
+      if(isAppHome()) showExit();
+    }
+    // Backspace outside input fields
+    if(e.key==="Backspace" && !["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName||"")){
+      e.preventDefault();
+      if(isAppHome()) showExit();
+    }
+  });
+
+  // Mobile: detect left-edge swipe (Android back gesture)
+  let touchStartX=0, touchStartY=0;
+  document.addEventListener("touchstart", e=>{
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  },{passive:true});
+
+  document.addEventListener("touchend", e=>{
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
+    // Swipe right from left edge (within 30px) with enough horizontal distance
+    if(touchStartX < 30 && dx > 60 && dy < 80){
+      if(isAppHome()) showExit();
+    }
+  },{passive:true});
+})();
 
 // BOOTSTRAP
 async function boot(){
