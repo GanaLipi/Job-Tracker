@@ -1078,75 +1078,33 @@ document.getElementById("pwa-manifest").href=URL.createObjectURL(new Blob([JSON.
 
 // ── BACK BUTTON / EXIT HANDLING ──────────────────────────
 
-function isAppOpen(){
-  const a=document.getElementById("app-screen");
-  return a && (a.style.display==="flex" || a.classList.contains("on"));
-}
-
 function handleBack(){
-  // 1. Close form if open
-  const formOvl=document.getElementById("form-ovl");
-  if(formOvl && formOvl.style.display==="flex"){
-    formOvl.style.display="none"; return;
-  }
-  // 2. Close view if open
-  const viewOvl=document.getElementById("view-ovl");
-  if(viewOvl && viewOvl.style.display==="flex"){
-    viewOvl.style.display="none"; return;
-  }
-  // 3. Close exit popup if open (second back = real exit)
-  const exitPopup=document.getElementById("exit-popup");
-  if(exitPopup && exitPopup.style.display==="flex"){
-    exitPopup.style.display="none";
-    window.history.go(-2); // actually exit
-    return;
-  }
-  // 4. On home — show exit popup
-  if(isAppOpen()){
-    exitPopup.style.display="flex";
-    return;
-  }
+  const formOvl  = document.getElementById("form-ovl");
+  const viewOvl  = document.getElementById("view-ovl");
+  const exitPopup= document.getElementById("exit-popup");
+  const appScreen= document.getElementById("app-screen");
+  const appOpen  = appScreen && (appScreen.style.display==="flex" || appScreen.classList.contains("on"));
+
+  if(formOvl  && formOvl.style.display==="flex"){  formOvl.style.display="none";  setHash("home"); return; }
+  if(viewOvl  && viewOvl.style.display==="flex"){  viewOvl.style.display="none";  setHash("home"); return; }
+  if(exitPopup && exitPopup.style.display==="flex"){ exitPopup.style.display="none"; return; } // real exit
+  if(appOpen){ exitPopup.style.display="flex"; setHash("exit"); return; }
 }
 
-function closeViewOvl(){
-  document.getElementById("view-ovl").style.display="none";
-}
+function setHash(h){ location.hash = h; }
+
+function closeViewOvl(){ document.getElementById("view-ovl").style.display="none"; setHash("home"); }
 window.closeViewOvl = closeViewOvl;
+window.closeForm    = ()=>{ document.getElementById("form-ovl").style.display="none"; setHash("home"); };
+function closeExitPopup(){ document.getElementById("exit-popup").style.display="none"; setHash("home"); }
 
-window.closeForm=()=>{
-  document.getElementById("form-ovl").style.display="none";
-};
+function pushModal(name){ setHash(name); }
 
-let exitShowing=false;
-function closeExitPopup(){
-  document.getElementById("exit-popup").style.display="none";
-}
+// hashchange fires reliably on ALL browsers including mobile Chrome
+window.addEventListener("hashchange", ()=>{ handleBack(); });
 
-function pushModal(name){
-  history.pushState({modal:name},"");
-}
-
-// popstate — fires on back button (mobile & desktop)
-window.addEventListener("popstate", e=>{
-  // Always push state back so we stay in control
-  history.pushState({page:"app"},"");
-  handleBack();
-});
-
-// Also catch keyboard back (Alt+Left / Backspace) on desktop
-document.addEventListener("keydown", e=>{
-  if((e.key==="BrowserBack") || (e.altKey && e.key==="ArrowLeft")){
-    e.preventDefault();
-    handleBack();
-  }
-});
-
-// Seed history on load — push enough entries so back never exits immediately
-window.addEventListener("load", ()=>{
-  history.replaceState({page:"app"},"");
-  history.pushState({page:"app"},"");
-  history.pushState({page:"app"},"");
-});
+// On load set base hash
+window.addEventListener("load", ()=>{ location.hash = "home"; });
 
 // BOOTSTRAP
 async function boot(){
