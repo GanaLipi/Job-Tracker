@@ -483,20 +483,45 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
         <div class="g2" style="margin-bottom:10px">
           <div class="fld"><label>Status</label>
             <select id="fst" onchange="onStChange()">
-              <option>Applied</option><option>Under Process</option><option>Rejected</option><option>Interview Scheduled</option>
-              <option>Interviewed</option><option>Further Process</option><option>Offered</option>
+              <option>Applied</option>
+              <option>Under Process</option>
+              <option>Screening</option>
+              <option>Interview</option>
+              <option>Further Process</option>
+              <option>Offered</option>
+              <option>Rejected</option>
             </select>
           </div>
           <div id="remarks-box"><div class="fld"><label>Remarks</label><input id="frm" placeholder="Brief note..."/></div></div>
         </div>
-        <div class="cbox" id="iv-box" style="display:none">
-          <div style="font-size:10px;font-weight:700;color:#60A5FA;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px">🗓️ Interview Schedule</div>
+        <!-- Sub-status box -->
+        <div class="cbox" id="sub-st-box" style="display:none;margin-bottom:10px">
+          <div class="fld">
+            <label id="sub-st-label">Sub Status</label>
+            <select id="fsub" onchange="onSubStChange()">
+              <option value="">— Select —</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Schedule box (Screening Scheduled / Interview Scheduled) -->
+        <div class="cbox" id="schedule-box" style="display:none">
+          <div style="font-size:10px;font-weight:700;color:#60A5FA;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px" id="schedule-lbl">🗓️ Schedule</div>
           <div class="g3">
             <div class="fld"><label>Date</label><input id="fid" type="date"/></div>
             <div class="fld"><label>Time</label><input id="fit" type="time"/></div>
             <div class="fld"><label>Mode</label>
               <select id="fim"><option value="">— Select —</option><option>Video Call</option><option>Phone Call</option><option>In-Person</option><option>Walk-in</option><option>Panel</option><option>Technical Round</option><option>HR Round</option></select>
             </div>
+          </div>
+        </div>
+
+        <!-- Interviewer box (Screening Done / Interviewed / Round Done) -->
+        <div class="cbox" id="interviewer-box" style="display:none">
+          <div style="font-size:10px;font-weight:700;color:#4ADE80;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px" id="interviewer-lbl">👤 Interviewer Details</div>
+          <div class="g2">
+            <div class="fld"><label>Interviewer Name</label><input id="fintname" placeholder="Name of person who took interview"/></div>
+            <div class="fld"><label>Interviewer Role <span style="color:#475569;font-size:10px">(Optional)</span></label><input id="fintrole" placeholder="e.g. Tech Lead, HR Manager"/></div>
           </div>
         </div>
         <div class="fld" style="margin-top:10px"><label>🎯 Interview Questions (one per line)</label>
@@ -556,14 +581,24 @@ const DEMO = FB.apiKey.startsWith("REPLACE");
 const LOCAL = location.protocol === "file:" || location.hostname === "localhost" || location.hostname === "127.0.0.1";
 
 const ST = {
-  "Applied":             {bg:"#0F2744",color:"#BAE6FD",dot:"#38BDF8"},
-  "Under Process":       {bg:"#431407",color:"#FED7AA",dot:"#FB923C"},
-  "Rejected":            {bg:"#450A0A",color:"#FECACA",dot:"#F87171"},
-  "Interview Scheduled": {bg:"#0C1A3F",color:"#BFDBFE",dot:"#60A5FA"},
-  "Interviewed":         {bg:"#052E16",color:"#BBF7D0",dot:"#4ADE80"},
-  "Further Process":     {bg:"#2E1065",color:"#E9D5FF",dot:"#C084FC"},
-  "Offered":             {bg:"#022C22",color:"#A7F3D0",dot:"#34D399"},
+  "Applied":        {bg:"#0F2744",color:"#BAE6FD",dot:"#38BDF8"},
+  "Under Process":  {bg:"#431407",color:"#FED7AA",dot:"#FB923C"},
+  "Screening":      {bg:"#1A1A2E",color:"#C4B5FD",dot:"#A78BFA"},
+  "Interview":      {bg:"#0C1A3F",color:"#BFDBFE",dot:"#60A5FA"},
+  "Further Process":{bg:"#2E1065",color:"#E9D5FF",dot:"#C084FC"},
+  "Offered":        {bg:"#022C22",color:"#A7F3D0",dot:"#34D399"},
+  "Rejected":       {bg:"#450A0A",color:"#FECACA",dot:"#F87171"},
 };
+
+// Sub-status options per main status
+const SUB_ST = {
+  "Screening":       ["Screening Scheduled","Screening Done"],
+  "Interview":       ["Interview Scheduled","Interviewed"],
+  "Further Process": ["Technical Round 1","Technical Round 2","Manager Round","HR Round"],
+};
+
+// Status rank for progression tracking
+const STATUS_RANK = {"Applied":0,"Under Process":1,"Screening":2,"Interview":3,"Further Process":4,"Offered":5,"Rejected":2};
 const STATUSES = Object.keys(ST);
 const SAMPLE = [
   {id:"d1",company:"Infosys BPM",role:"React Developer",jobDescription:"React, Redux, REST APIs",experience:"3-5 Yrs",hrName:"Sneha Iyer",contactNumber:"+91 98001 11222",mailId:"sneha.iyer@infosys.com",client:"Direct",salaryOffering:"12 LPA",resumeEdited:"Yes",resumeLink:"https://docs.google.com/document/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms/preview",mailContactedOn:"2026-03-05",followUpOn:"2026-03-15",status:"Interview Scheduled",remarks:"Round 1 cleared",interviewDate:"2026-03-18",interviewTime:"10:30",interviewMode:"Video Call",interviewQuestions:"Explain Virtual DOM?\nWhat is Redux Thunk?\nCSS Flexbox vs Grid?"},
@@ -593,6 +628,7 @@ function showLocalApp() {
   document.getElementById("btn-add").style.display = "flex";
   setSyncStatus("ok", "Saved locally");
   renderAll();
+  rescheduleAllNotifs();
   history.replaceState({page:"home"},"");
   history.pushState({page:"home"},"");
   setTimeout(()=>document.getElementById("focus-trap").focus(),100);
@@ -683,6 +719,7 @@ function subscribeJobs(uid) {
     document.getElementById("hdr-sub").textContent=`${jobs.length} Applications`;
     setSyncStatus("","Synced · "+jobs.length+" apps");
     renderAll();
+    rescheduleAllNotifs();
   }, ()=>setSyncStatus("off","Offline"));
 }
 
@@ -906,7 +943,7 @@ function renderTable(f){
   document.getElementById("tbody").innerHTML=f.map((j,i)=>{
     const st=ST[j.status]||ST["Applied"],qs=(j.interviewQuestions||"").split("\n").filter(Boolean);
     const past=j.followUpOn&&new Date(j.followUpOn)<new Date();
-    const isIv=j.status==="Interview Scheduled"||j.status==="Interviewed";
+    const isIv=(j.status==="Interview"&&(j.subStatus==="Interview Scheduled"||j.subStatus==="Interviewed"))||(j.status==="Screening"&&(j.subStatus==="Screening Scheduled"||j.subStatus==="Screening Done"));
     const bg=i%2?"#192130":"#1E293B";
     return `<tr style="background:${bg}" onmouseenter="this.style.background='#243044'" onmouseleave="this.style.background='${bg}'">
       <td style="text-align:center;color:#4B5563">${i+1}</td>
@@ -943,8 +980,10 @@ function renderTable(f){
 
 function stCell(j){
   const st=ST[j.status]||ST["Applied"];
-  if(j.status!=="Interview Scheduled")return `<span class="sbadge" style="background:${st.bg};color:${st.color}"><span class="dot" style="background:${st.dot}"></span>${j.status}</span>`;
-  const cd=j.interviewDate?Math.ceil((new Date(j.interviewDate)-new Date())/(864e5)):null;
+  const sub=j.subStatus?"<span style='font-size:9px;opacity:0.7;margin-left:4px'>· "+x(j.subStatus)+"</span>":"";
+  if(j.status!=="Interview" || j.subStatus!=="Interview Scheduled")
+    return `<span class="sbadge" style="background:${st.bg};color:${st.color}"><span class="dot" style="background:${st.dot}"></span>${j.status}${sub}</span>`;
+  const cd=j.scheduleDate?Math.ceil((new Date(j.scheduleDate)-new Date())/(864e5)):null;
   const no=notifMap[j.id]||false;
   return `<div style="position:relative;display:inline-block" onmouseenter="showTT('tt${j.id}')" onmouseleave="hideTT('tt${j.id}')">
     <span class="sbadge" style="background:${st.bg};color:${st.color};cursor:pointer;border:1px solid ${st.dot}55">
@@ -953,7 +992,7 @@ function stCell(j){
     <div id="tt${j.id}" style="display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);z-index:9999;background:#0C1628;border:1px solid #1E40AF;border-radius:14px;padding:14px;min-width:240px;box-shadow:0 20px 60px rgba(0,0,0,0.8)">
       <div style="position:absolute;top:-7px;left:50%;transform:translateX(-50%) rotate(45deg);width:12px;height:12px;background:#0C1628;border-top:1px solid #1E40AF;border-left:1px solid #1E40AF"></div>
       <div style="font-size:12px;font-weight:800;color:#BFDBFE;margin-bottom:10px">🗓️ Interview Details</div>
-      ${[["📆","Date",j.interviewDate,true],["⏰","Time",fmt12(j.interviewTime),true],["💻","Mode",j.interviewMode,false]].map(([ico,lbl,val,mo])=>
+      ${[["📆","Date",j.scheduleDate,true],["⏰","Time",fmt12(j.scheduleTime),true],["💻","Mode",j.scheduleMode,false]].map(([ico,lbl,val,mo])=>
         `<div style="display:flex;align-items:center;gap:7px;background:rgba(96,165,250,0.06);border-radius:8px;padding:6px 9px;margin-bottom:5px">
           <span style="font-size:13px">${ico}</span>
           <span style="font-size:9px;font-weight:700;color:#475569;min-width:28px;text-transform:uppercase">${lbl}</span>
@@ -977,14 +1016,64 @@ window.hideTT=id=>{const e=document.getElementById(id);if(e)e.style.display="non
 
 window.toggleNotif=(jid,en)=>{
   const j=jobs.find(x=>x.id===jid); if(!j)return;
-  if(en&&(!j.interviewDate||!j.interviewTime))return toast("Set Interview Date & Time first!","error");
+  if(en&&(!j.scheduleDate||!j.scheduleTime))return toast("Set Interview Schedule Date & Time first!","error");
   notifMap[jid]=en;
   if(en){
-    const req=()=>{const dt=new Date(`${j.interviewDate}T${j.interviewTime}`),ms=dt-30*60*1000-Date.now();if(ms>0){setTimeout(()=>{try{new Notification(`⏰ Interview in 30 min!`,{body:`${j.company} — ${j.role}`});}catch(e){}},ms);toast(`🔔 Reminder set for ${j.company}!`);}else{toast("Interview time passed","info");notifMap[jid]=false;}};
+    const req=()=>scheduleSmartNotif(j,jid);
     Notification.requestPermission().then(p=>p==="granted"?req():(toast("Notifications denied","error"),notifMap[jid]=false));
-  }else toast("🔕 Reminder off","info");
+  } else {
+    toast("🔕 Reminder cancelled.","info");
+  }
   renderAll();
 };
+
+// Smart notification — fires immediately if <30min, else schedules for 30min before
+function scheduleSmartNotif(j, jid){
+  if(!j.scheduleDate||!j.scheduleTime){ toast("Set Interview Schedule Date & Time first!","error"); notifMap[jid]=false; return; }
+  const dt = new Date(`${j.scheduleDate}T${j.scheduleTime}`);
+  const now = Date.now();
+  const msToInterview = dt.getTime() - now;
+  const msTo30Before  = dt.getTime() - 30*60*1000 - now;
+
+  if(msToInterview <= 0){
+    toast("Interview time has already passed.","info");
+    notifMap[jid]=false; return;
+  }
+
+  function fireNotif(msg){
+    try{ new Notification(msg, {body:`${j.company} — ${j.role}\n${fmt12(j.scheduleTime)} · ${j.scheduleMode||""}`}); }catch(e){}
+  }
+
+  if(msTo30Before <= 0){
+    // Less than 30 min away — notify immediately
+    const minsLeft = Math.round(msToInterview/60000);
+    fireNotif(`🔔 Interview in ${minsLeft} minute${minsLeft!==1?"s":""}!`);
+    toast(`🔔 Interview in ${minsLeft} min — notification sent!`);
+  } else {
+    // Schedule for 30 min before
+    setTimeout(()=>fireNotif("⏰ Interview in 30 minutes!"), msTo30Before);
+    toast(`🔔 Reminder set! You'll be notified 30 min before your interview at ${j.company}.`);
+  }
+
+  // Also schedule at exact interview time as backup
+  if(msToInterview > 0){
+    setTimeout(()=>fireNotif(`🚨 Interview starting now!`), msToInterview);
+  }
+}
+
+// On app load — reschedule notifications for all pending interviews
+function rescheduleAllNotifs(){
+  jobs.forEach(j=>{
+    if(j.status==="Interview" && j.subStatus==="Interview Scheduled" && j.scheduleDate && j.scheduleTime){
+      const dt=new Date(`${j.scheduleDate}T${j.scheduleTime}`);
+      const msToInterview=dt.getTime()-Date.now();
+      if(msToInterview>0 && Notification.permission==="granted"){
+        scheduleSmartNotif(j, j.id);
+      }
+    }
+  });
+}
+
 
 // FORM
 window.openAdd=()=>{editId=null;document.getElementById("form-title").textContent="➕ New Application";clearForm();document.getElementById("form-ovl").style.display="flex"};
@@ -996,13 +1085,16 @@ window.openEdit=id=>{
 // closeForm defined below in back button section
 
 function clearForm(){
-  ["fc","fr","fexp","fcl","fsal","floc","fjd","fcon","ffu","frl","frm","fiq","fid","fit","favl","favop","frefn","frefp","frefm","frefl","fcpl","favhrn","favhrp","favhrm","fhrn","fhrp","fhrm","ffb"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
-  ["fav","favh","favo"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  ["fc","fr","fexp","fcl","fsal","floc","fjd","fcon","ffu","frl","frm","fiq","fid","fit","favl","favop","frefn","frefp","frefm","frefl","fcpl","favhrn","favhrp","favhrm","fhrn","fhrp","fhrm","ffb","fintname","fintrole"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  ["fav","favh","favo","fsub","fid","fit","fim"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
   ["fav-others-box","fav-himself-box","fav-link-box","fav-ref-box","fav-cp-box","fav-hr-box","fav-social-other-box"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
   document.getElementById("hr-details-box").style.display="none";
   document.getElementById("feedback-box").style.display="none";
+  document.getElementById("sub-st-box").style.display="none";
+  document.getElementById("schedule-box").style.display="none";
+  document.getElementById("interviewer-box").style.display="none";
   document.getElementById("remarks-box").style.display="block";
-  document.getElementById("fres").value="";document.getElementById("fst").value="Applied";document.getElementById("fim").value="";
+  document.getElementById("fres").value="";document.getElementById("fst").value="Applied";
   onStChange();onResChange();
   // Unlock Applied Via for new application
   _lockAppliedVia(false);
@@ -1015,24 +1107,26 @@ function fillForm(j){
   s("favh",j.himselfHow);s("frefn",j.refName);s("frefp",j.refPhone);s("frefm",j.refEmail);s("frefl",j.refLinkedIn);
   s("fcpl",j.careerPortalLink);s("favhrn",j.appliedHrName);s("favhrp",j.appliedHrPhone);s("favhrm",j.appliedHrEmail);
   s("fhrn",j.hrName);s("fhrp",j.hrPhone);s("fhrm",j.hrEmail);
-  onAppliedViaChange();onHimselfChange();onSocialPlatformChange();
+  onAppliedViaChange();onHimselfChange();onSocialPlatformChange();onSubStChange();
   // Lock Applied Via if job is past Applied status
-  const pastApplied=["Under Process","Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
+  const pastApplied=["Under Process","Screening","Interview","Further Process","Offered","Rejected"];
   _highestStatus = j.status || "Applied";
   _lockAppliedVia(pastApplied.includes(j.status));
   s("fcon",j.mailContactedOn);s("ffu",j.followUpOn);s("fres",j.resumeEdited);s("frl",j.resumeLink);
-  s("fst",j.status);s("frm",j.remarks);s("ffb",j.feedback);s("fiq",j.interviewQuestions);s("fid",j.interviewDate);s("fit",j.interviewTime);s("fim",j.interviewMode);
+  s("fst",j.status);s("frm",j.remarks);s("ffb",j.feedback);s("fiq",j.interviewQuestions);
+  s("fsub",j.subStatus||"");s("fid",j.scheduleDate||"");s("fit",j.scheduleTime||"");s("fim",j.scheduleMode||"");
+  s("fintname",j.interviewerName||"");s("fintrole",j.interviewerRole||"");
   onStChange();onResChange();
 }
 function gf(){
   const g=id=>(document.getElementById(id)||{}).value||"";
-  return {company:g("fc"),role:g("fr"),experience:g("fexp"),client:g("fcl"),salaryOffering:g("fsal"),location:g("floc"),jobDescription:g("fjd"),appliedVia:g("fav"),socialPlatform:g("favo"),appliedViaOther:g("favop"),appliedViaLink:g("favl"),himselfHow:g("favh"),refName:g("frefn"),refPhone:g("frefp"),refEmail:g("frefm"),refLinkedIn:g("frefl"),careerPortalLink:g("fcpl"),appliedHrName:g("favhrn"),appliedHrPhone:g("favhrp"),appliedHrEmail:g("favhrm"),hrName:g("fhrn"),hrPhone:g("fhrp"),hrEmail:g("fhrm"),mailContactedOn:g("fcon"),followUpOn:g("ffu"),resumeEdited:g("fres"),resumeLink:g("frl"),status:g("fst"),remarks:g("frm"),feedback:g("ffb"),interviewQuestions:g("fiq"),interviewDate:g("fid"),interviewTime:g("fit"),interviewMode:g("fim")};
+  return {company:g("fc"),role:g("fr"),experience:g("fexp"),client:g("fcl"),salaryOffering:g("fsal"),location:g("floc"),jobDescription:g("fjd"),appliedVia:g("fav"),socialPlatform:g("favo"),appliedViaOther:g("favop"),appliedViaLink:g("favl"),himselfHow:g("favh"),refName:g("frefn"),refPhone:g("frefp"),refEmail:g("frefm"),refLinkedIn:g("frefl"),careerPortalLink:g("fcpl"),appliedHrName:g("favhrn"),appliedHrPhone:g("favhrp"),appliedHrEmail:g("favhrm"),hrName:g("fhrn"),hrPhone:g("fhrp"),hrEmail:g("fhrm"),mailContactedOn:g("fcon"),followUpOn:g("ffu"),resumeEdited:g("fres"),resumeLink:g("frl"),status:g("fst"),subStatus:g("fsub"),remarks:g("frm"),feedback:g("ffb"),interviewQuestions:g("fiq"),scheduleDate:g("fid"),scheduleTime:g("fit"),scheduleMode:g("fim"),interviewerName:g("fintname"),interviewerRole:g("fintrole")};
 }
 // Track if Applied Via source is locked (set when status moves past Applied)
 let _favLocked = false;
 // Track highest status reached in current form session
 let _highestStatus = "Applied";
-const _statusRank = {"Applied":0,"Under Process":1,"Interview Scheduled":2,"Interviewed":3,"Further Process":4,"Offered":5,"Rejected":6};
+// Use STATUS_RANK from ST definition above
 
 function _lockAppliedVia(lock){
   _favLocked = lock;
@@ -1084,7 +1178,7 @@ window.onStChange=()=>{
 
   // Block going back to Applied
   if(s==="Applied"){
-    const lockedStatuses = ["Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
+    const lockedStatuses = ["Interview","Further Process","Offered","Rejected"];
 
     // Always block if highest status in this session is past Under Process
     if(lockedStatuses.includes(_highestStatus)){
@@ -1158,17 +1252,63 @@ window.onStChange=()=>{
   }
 
   // All validation passed — now lock Applied Via if moving past Applied
-  const pastStatuses=["Under Process","Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
+  const pastStatuses=["Under Process","Screening","Interview","Further Process","Offered","Rejected"];
   if(pastStatuses.includes(s)){
     _lockAppliedVia(true);
     // Always update highest status reached this session
     if((_statusRank[s]||0) > (_statusRank[_highestStatus]||0)) _highestStatus = s;
   }
 
-  document.getElementById("iv-box").style.display=(s==="Interview Scheduled"||s==="Interviewed")?"block":"none";
+  // Show sub-status dropdown for Screening, Interview, Further Process
+  const hasSub = ["Screening","Interview","Further Process"].includes(s);
+  const subBox = document.getElementById("sub-st-box");
+  const subSel = document.getElementById("fsub");
+  if(hasSub){
+    subBox.style.display="block";
+    document.getElementById("sub-st-label").textContent =
+      s==="Screening" ? "Screening Stage" :
+      s==="Interview" ? "Interview Stage" : "Round";
+    // Populate sub-status options
+    subSel.innerHTML = '<option value="">— Select —</option>' +
+      (SUB_ST[s]||[]).map(o=>`<option>${o}</option>`).join("");
+    subSel.value = "";
+  } else {
+    subBox.style.display="none";
+    subSel.value="";
+  }
+  document.getElementById("schedule-box").style.display="none";
+  document.getElementById("interviewer-box").style.display="none";
   document.getElementById("feedback-box").style.display=s==="Rejected"?"block":"none";
   document.getElementById("remarks-box").style.display=s==="Rejected"?"none":"block";
   updateHrVisibility();
+};
+
+window.onSubStChange=()=>{
+  const sub = document.getElementById("fsub").value;
+  const st  = document.getElementById("fst").value;
+  const scheduleStages = ["Screening Scheduled","Interview Scheduled"];
+  const doneStages     = ["Screening Done","Interviewed","Technical Round 1","Technical Round 2","Manager Round","HR Round"];
+
+  const schedBox = document.getElementById("schedule-box");
+  const intBox   = document.getElementById("interviewer-box");
+
+  if(scheduleStages.includes(sub)){
+    schedBox.style.display="block";
+    intBox.style.display="none";
+    document.getElementById("schedule-lbl").textContent =
+      sub==="Screening Scheduled" ? "🗓️ Screening Schedule" : "🗓️ Interview Schedule";
+    // Clear interviewer fields when switching to scheduled
+    document.getElementById("fintname").value="";
+    document.getElementById("fintrole").value="";
+  } else if(doneStages.includes(sub)){
+    schedBox.style.display="none";
+    intBox.style.display="block";
+    document.getElementById("interviewer-lbl").textContent =
+      sub==="Screening Done" ? "👤 Screened By" : "👤 Interviewer Details";
+  } else {
+    schedBox.style.display="none";
+    intBox.style.display="none";
+  }
 };
 
 // Check if current job being edited has moved past Applied
@@ -1176,7 +1316,7 @@ function _isPastApplied(){
   if(!editId) return false;
   const job=jobs.find(j=>j.id===editId);
   if(!job) return false;
-  const past=["Under Process","Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
+  const past=["Under Process","Screening","Interview","Further Process","Offered","Rejected"];
   return past.includes(job.status);
 }
 
@@ -1188,7 +1328,7 @@ function needsHrOnStatus(){
   // Self → HR: never show hr-details-box — HR info already in Applied Via section
   if(via==="Self" && how==="HR") return false;
 
-  const processed=["Under Process","Interview Scheduled","Interviewed","Further Process","Offered"];
+  const processed=["Under Process","Screening","Interview","Further Process","Offered"];
 
   // For Social Media / Career Portal / Referral:
   if(via==="Social Media" || (via==="Self" && how==="Career Portal") || (via==="Self" && how==="Referral")){
@@ -1215,7 +1355,7 @@ function updateHrVisibility(){
 
 function _lockHrDetails(){
   const s = document.getElementById("fst").value;
-  const lockStatuses = ["Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
+  const lockStatuses = ["Interview","Further Process","Offered","Rejected"];
   const locked = lockStatuses.includes(s);
   // Lock/unlock HR input fields
   ["fhrn","fhrp","fhrm"].forEach(id=>{
@@ -1233,6 +1373,26 @@ window.onResChange=()=>document.getElementById("res-box").style.display=document
 window.saveJob=async()=>{
   const d=gf();
   if(!d.company||!d.role) return toast("Company & Role required!","error");
+
+  // Build history entry for this status change
+  const prevJob = editId ? jobs.find(j=>j.id===editId) : null;
+  const prevStatus = prevJob?.status || "";
+  if(!editId || prevStatus !== d.status || (prevJob?.subStatus||"") !== d.subStatus){
+    const histEntry = {
+      status: d.status,
+      subStatus: d.subStatus||"",
+      date: new Date().toISOString(),
+      scheduleDate: d.scheduleDate||"",
+      scheduleTime: d.scheduleTime||"",
+      scheduleMode: d.scheduleMode||"",
+      interviewerName: d.interviewerName||"",
+      interviewerRole: d.interviewerRole||"",
+    };
+    const prevHistory = prevJob?.history || [];
+    d.history = [...prevHistory, histEntry];
+  } else {
+    d.history = prevJob?.history || [];
+  }
 
   // Validate Social Media job link
   const linkBox=document.getElementById("fav-link-box");
@@ -1271,10 +1431,35 @@ window.saveJob=async()=>{
 };
 
 // VIEW
+function renderHistory(history){
+  if(!history||!history.length) return "";
+  const stIcon={"Applied":"📝","Under Process":"⚙️","Screening":"🔍","Interview":"🎯","Further Process":"🔄","Offered":"🎉","Rejected":"❌"};
+  return `<div style="margin-top:14px">
+    <div style="font-size:10px;font-weight:700;color:#38BDF8;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px">📋 Status History</div>
+    <div style="position:relative;padding-left:20px">
+      <div style="position:absolute;left:7px;top:0;bottom:0;width:2px;background:#1E293B"></div>
+      ${history.map((h,i)=>{
+        const st=ST[h.status]||ST["Applied"];
+        const dt=h.date?new Date(h.date).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}):"";
+        const tm=h.date?new Date(h.date).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}):"";
+        return `<div style="position:relative;margin-bottom:12px;padding-left:14px">
+          <div style="position:absolute;left:-5px;top:4px;width:10px;height:10px;border-radius:50%;background:${st.dot};border:2px solid #0F172A"></div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="font-size:12px;font-weight:700;color:${st.color}">${stIcon[h.status]||"•"} ${h.status}${h.subStatus?" · "+h.subStatus:""}</span>
+            <span style="font-size:10px;color:#475569">${dt} ${tm}</span>
+          </div>
+          ${h.scheduleDate?`<div style="font-size:11px;color:#60A5FA;margin-top:3px">📅 ${h.scheduleDate}${h.scheduleTime?" · "+fmt12(h.scheduleTime):""}${h.scheduleMode?" · "+h.scheduleMode:""}</div>`:""}
+          ${h.interviewerName?`<div style="font-size:11px;color:#4ADE80;margin-top:3px">👤 ${h.interviewerName}${h.interviewerRole?" ("+h.interviewerRole+")":""}</div>`:""}
+        </div>`;
+      }).join("")}
+    </div>
+  </div>`;
+}
+
 window.openView=id=>{
   const j=jobs.find(x=>x.id===id);if(!j)return;
   const st=ST[j.status]||ST["Applied"],qs=(j.interviewQuestions||"").split("\n").filter(Boolean);
-  const isIv=j.status==="Interview Scheduled"||j.status==="Interviewed";
+  const isIv=(j.status==="Interview"&&(j.subStatus==="Interview Scheduled"||j.subStatus==="Interviewed"))||(j.status==="Screening"&&(j.subStatus==="Screening Scheduled"||j.subStatus==="Screening Done"));
   const isPast=j.interviewDate&&new Date(j.interviewDate+(j.interviewTime?"T"+j.interviewTime:""))<new Date();
   const cd=j.interviewDate?Math.ceil((new Date(j.interviewDate)-new Date())/864e5):null;
   const embedUrl=getEmbed(j.resumeLink),isUrl=(j.resumeLink||"").startsWith("http");
@@ -1311,6 +1496,7 @@ window.openView=id=>{
         </div>
 
       </div>
+      ${renderHistory(j.history||[])}
       <div class="two">
         <div class="ibox"><div class="iblbl">📋 Job Description</div><div class="ibtxt">${x(j.jobDescription)||'<span style="color:#334155">Not provided</span>'}</div></div>
         <div class="ibox"><div class="iblbl">📝 Remarks</div><div class="ibtxt">${x(j.remarks)||'<span style="color:#334155">No remarks</span>'}</div>
@@ -1320,14 +1506,14 @@ window.openView=id=>{
           </div>`:""}
         </div>
       </div>
-      ${isIv&&(j.interviewDate||j.interviewTime||j.interviewMode)?`
+      ${isIv&&(j.scheduleDate||j.scheduleTime||j.scheduleMode)?`
       <div class="ivcard">
         <div class="ivhdr">
-          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:17px">🗓️</span><div><div style="font-size:13px;font-weight:800;color:#BFDBFE">Interview Schedule</div><div style="font-size:11px;color:#93C5FD">${j.status}</div></div></div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:17px">🗓️</span><div><div style="font-size:13px;font-weight:800;color:#BFDBFE">${j.subStatus||"Schedule"}</div><div style="font-size:11px;color:#93C5FD">${j.status}</div></div></div>
           ${cd!=null?`<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:${isPast?"#052E16":cd===0?"#431407":cd===1?"#3B1F00":"#0C1A3F"};color:${isPast?"#4ADE80":cd===0?"#FB923C":cd===1?"#FBBF24":"#60A5FA"}">${isPast?"✅ Done":cd===0?"🔥 Today!":cd===1?"⚡ Tomorrow":"📅 In "+cd+" days"}</span>`:""}
         </div>
         <div class="ivtiles">
-          ${[["📆","Date",j.interviewDate,true],["⏰","Time",fmt12(j.interviewTime),true],["💻","Mode",j.interviewMode,false]].map(([ico,lbl,val,mo])=>
+          ${[["📆","Date",j.scheduleDate,true],["⏰","Time",fmt12(j.scheduleTime),true],["💻","Mode",j.scheduleMode,false]].map(([ico,lbl,val,mo])=>
             `<div class="ivtile"><div style="font-size:18px;margin-bottom:4px">${ico}</div><div style="font-size:9px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px">${lbl}</div><div style="font-size:13px;font-weight:800;color:#60A5FA;font-family:${mo?"'DM Mono',monospace":"inherit"}">${val||"—"}</div></div>`).join("")}
         </div>
       </div>`:""}
@@ -1363,8 +1549,8 @@ window.confirmDel=id=>{
 // EXPORT
 function doExcelExport(){
   const XLSX=window.XLSX;
-  const hdrs=["Sl. No","Company","Role","Job Description","Experience","Client","Salary","Location","Applied Via","Platform","How","HR Name","HR Phone","HR Email","Ref Name","Ref Phone","Ref Email","Ref LinkedIn","Career Portal Link","Applied HR Name","Applied HR Phone","Applied HR Email","Job Link","Resume Edited","Resume Link","Contacted On","Follow-up","Interview Date","Interview Time","Interview Mode","Status","Remarks","Feedback","Interview Questions"];
-  const rows=jobs.map((j,i)=>[i+1,j.company||"",j.role||"",j.jobDescription||"",j.experience||"",j.client||"",j.salaryOffering||"",j.location||"",j.appliedVia||"",j.socialPlatform||"",j.himselfHow||"",j.hrName||"",j.hrPhone||"",j.hrEmail||"",j.refName||"",j.refPhone||"",j.refEmail||"",j.refLinkedIn||"",j.careerPortalLink||"",j.appliedHrName||"",j.appliedHrPhone||"",j.appliedHrEmail||"",j.appliedViaLink||"",j.resumeEdited||"",j.resumeLink||"",j.mailContactedOn||"",j.followUpOn||"",j.interviewDate||"",j.interviewTime||"",j.interviewMode||"",j.status||"",j.remarks||"",j.feedback||"",(j.interviewQuestions||"").replace(/\n/g," | ")]);
+  const hdrs=["Sl. No","Company","Role","Job Description","Experience","Client","Salary","Location","Applied Via","Platform","How","HR Name","HR Phone","HR Email","Ref Name","Ref Phone","Ref Email","Ref LinkedIn","Career Portal Link","Applied HR Name","Applied HR Phone","Applied HR Email","Job Link","Resume Edited","Resume Link","Contacted On","Follow-up","Interview Date","Interview Time","Interview Mode","Status","Sub Status","Interviewer","Interviewer Role","Schedule Date","Schedule Time","Schedule Mode","Remarks","Feedback","Interview Questions"];
+  const rows=jobs.map((j,i)=>[i+1,j.company||"",j.role||"",j.jobDescription||"",j.experience||"",j.client||"",j.salaryOffering||"",j.location||"",j.appliedVia||"",j.socialPlatform||"",j.himselfHow||"",j.hrName||"",j.hrPhone||"",j.hrEmail||"",j.refName||"",j.refPhone||"",j.refEmail||"",j.refLinkedIn||"",j.careerPortalLink||"",j.appliedHrName||"",j.appliedHrPhone||"",j.appliedHrEmail||"",j.appliedViaLink||"",j.resumeEdited||"",j.resumeLink||"",j.mailContactedOn||"",j.followUpOn||"",j.interviewDate||"",j.interviewTime||"",j.interviewMode||"",j.status||"",j.subStatus||"",j.interviewerName||"",j.interviewerRole||"",j.scheduleDate||"",j.scheduleTime||"",j.scheduleMode||"",j.remarks||"",j.feedback||"",(j.interviewQuestions||"").replace(/\n/g," | ")]);
   const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([hdrs,...rows]);
   ws["!cols"]=[{wch:5},{wch:22},{wch:20},{wch:32},{wch:12},{wch:18},{wch:18},{wch:28},{wch:14},{wch:14},{wch:16},{wch:36},{wch:18},{wch:14},{wch:16},{wch:14},{wch:18},{wch:22},{wch:24},{wch:48}];
   ws["!sheetViews"]=[{state:"frozen",ySplit:1,topLeftCell:"A2",activeCell:"A2",sqref:"A2"}];
