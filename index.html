@@ -1044,9 +1044,7 @@ function _lockAppliedVia(lock){
     el.style.cursor = lock?"not-allowed":"pointer";
     el.title = lock?"Locked — cannot change source after Under Process":"";
   });
-  // Disable Applied option in status dropdown
-  const fstEl=document.getElementById("fst");
-  if(fstEl){ Array.from(fstEl.options).forEach(o=>{ o.disabled=(lock && o.value==="Applied"); }); }
+  // Applied option is handled by onStChange logic - not disabled here
 }
 
 window.onAppliedViaChange=()=>{
@@ -1086,7 +1084,6 @@ window.onStChange=()=>{
 
   // Block going back to Applied
   if(s==="Applied"){
-    console.log("DEBUG back-to-Applied | _highestStatus:", _highestStatus, "| _favLocked:", _favLocked);
     const lockedStatuses = ["Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
 
     // Always block if highest status in this session is past Under Process
@@ -1100,7 +1097,6 @@ window.onStChange=()=>{
     const hrn = ((document.getElementById("fhrn")||{}).value||"").trim();
     const hrp = ((document.getElementById("fhrp")||{}).value||"").trim();
     const hrm = ((document.getElementById("fhrm")||{}).value||"").trim();
-    console.log("DEBUG HR fields | hrn:", hrn, "| hrp:", hrp, "| hrm:", hrm);
     if(hrn || hrp || hrm){
       fst.value = _highestStatus || "Under Process";
       toast("The status cannot be moved back to Applied once HR Details are filled.","error");
@@ -1108,7 +1104,6 @@ window.onStChange=()=>{
     }
 
     // Safe to go back — HR empty, only reached Under Process
-    console.log("DEBUG: Allowing back to Applied");
     _highestStatus = "Applied";
     _lockAppliedVia(false);
     document.getElementById("hr-details-box").style.display="none";
