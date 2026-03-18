@@ -275,6 +275,49 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
   </div>
 </div>
 
+<!-- POST-INTERVIEW POPUP -->
+<div id="post-iv-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9998;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(8px)">
+  <div style="background:#1E293B;border:1px solid #334155;border-radius:20px;width:min(480px,96vw);max-height:90vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,0.8)">
+    <div style="background:linear-gradient(135deg,#0C1628,#1A2744);padding:18px 20px;border-bottom:1px solid #334155;border-radius:20px 20px 0 0">
+      <div style="font-size:15px;font-weight:800;color:#F1F5F9" id="post-iv-title">⏰ How did your interview go?</div>
+      <div style="font-size:12px;color:#475569;margin-top:3px" id="post-iv-sub"></div>
+    </div>
+    <div style="padding:20px">
+      <!-- Attended / Rescheduled buttons -->
+      <div id="post-iv-actions" style="display:grid;gap:10px">
+        <button onclick="postIvAction('attended')" style="padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#166534,#14532D);color:#4ADE80;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">✅ Attended — Mark as Done</button>
+        <button onclick="postIvAction('rescheduled')" style="padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#1A1A2E,#2E1065);color:#C4B5FD;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">🔄 Rescheduled — Set New Time</button>
+        <button onclick="closePostIv()" style="padding:10px;border-radius:12px;border:1px solid #334155;background:transparent;color:#475569;font-size:13px;cursor:pointer;font-family:inherit">Remind me later</button>
+      </div>
+      <!-- Attended form -->
+      <div id="post-iv-attended" style="display:none">
+        <div style="font-size:13px;color:#4ADE80;font-weight:700;margin-bottom:14px">✅ Great! Who took your interview?</div>
+        <div class="g2" style="gap:10px">
+          <div class="fld"><label>Interviewer Name</label><input id="piv-intname" placeholder="Name"/></div>
+          <div class="fld"><label>Role <span style="color:#475569;font-size:10px">(Optional)</span></label><input id="piv-introle" placeholder="e.g. Tech Lead"/></div>
+        </div>
+        <button onclick="submitAttended()" style="width:100%;margin-top:14px;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#38BDF8,#0EA5E9);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">💾 Save & Update Status</button>
+      </div>
+      <!-- Rescheduled form -->
+      <div id="post-iv-reschedule" style="display:none">
+        <div style="font-size:13px;color:#C4B5FD;font-weight:700;margin-bottom:14px">🔄 Enter new schedule details</div>
+        <div class="g3" style="gap:10px;margin-bottom:10px">
+          <div class="fld"><label>New Date</label><input id="piv-date" type="date"/></div>
+          <div class="fld"><label>New Time</label><input id="piv-time" type="time"/></div>
+          <div class="fld"><label>Mode</label>
+            <select id="piv-mode" onchange="onPivModeChange()"><option value="">— Select —</option><option>Video Call</option><option>Phone Call</option><option>In-Person</option><option>Walk-in</option><option>Panel</option></select>
+          </div>
+        </div>
+        <div id="piv-link-box" style="display:none;margin-bottom:10px">
+          <div class="fld"><label>Meeting Link <span style="color:#475569;font-size:10px">(Optional)</span></label><input id="piv-link" placeholder="MS Teams / Zoom / Google Meet..."/></div>
+        </div>
+        <div class="fld" style="margin-bottom:14px"><label>Reason for Reschedule <span style="color:#475569;font-size:10px">(Optional)</span></label><input id="piv-reason" placeholder="e.g. Interviewer unavailable..."/></div>
+        <button onclick="submitRescheduled()" style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#7C3AED,#6D28D9);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">🔄 Save Reschedule</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- EXIT POPUP -->
 <div id="exit-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px)">
   <div style="background:#1E293B;border:1px solid #334155;border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;text-align:center;box-shadow:0 -8px 40px rgba(0,0,0,0.5)">
@@ -511,7 +554,18 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
             <div class="fld"><label>Date</label><input id="fid" type="date"/></div>
             <div class="fld"><label>Time</label><input id="fit" type="time"/></div>
             <div class="fld"><label>Mode</label>
-              <select id="fim"><option value="">— Select —</option><option>Video Call</option><option>Phone Call</option><option>In-Person</option><option>Walk-in</option><option>Panel</option><option>Technical Round</option><option>HR Round</option></select>
+              <select id="fim" onchange="onModeChange()"><option value="">— Select —</option><option>Video Call</option><option>Phone Call</option><option>In-Person</option><option>Walk-in</option><option>Panel</option></select>
+            </div>
+          </div>
+          <!-- Meeting link — shown only for Video Call -->
+          <div id="meeting-link-box" style="display:none;margin-top:10px">
+            <div class="fld"><label>Meeting Link <span style="color:#475569;font-size:10px">(Optional)</span></label>
+              <input id="fmlink" placeholder="MS Teams / Zoom / Google Meet link..."/>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+              <button type="button" onclick="setMeetLink('teams')" style="padding:4px 10px;border-radius:7px;border:1px solid #334155;background:#0F172A;color:#7DD3FC;font-size:11px;cursor:pointer;font-family:inherit">🟦 MS Teams</button>
+              <button type="button" onclick="setMeetLink('zoom')" style="padding:4px 10px;border-radius:7px;border:1px solid #334155;background:#0F172A;color:#60A5FA;font-size:11px;cursor:pointer;font-family:inherit">🔵 Zoom</button>
+              <button type="button" onclick="setMeetLink('meet')" style="padding:4px 10px;border-radius:7px;border:1px solid #334155;background:#0F172A;color:#4ADE80;font-size:11px;cursor:pointer;font-family:inherit">🟢 Google Meet</button>
             </div>
           </div>
         </div>
@@ -1059,20 +1113,138 @@ function scheduleSmartNotif(j, jid){
   if(msToInterview > 0){
     setTimeout(()=>fireNotif(`🚨 Interview starting now!`), msToInterview);
   }
+  // Schedule post-interview check 1 hour after
+  schedulePostIvCheck(j);
 }
+
+// Track scheduled post-interview timers
+const _postIvTimers = {};
+let _postIvJobId = null;
 
 // On app load — reschedule notifications for all pending interviews
 function rescheduleAllNotifs(){
   jobs.forEach(j=>{
-    if(j.status==="Interview" && j.subStatus==="Interview Scheduled" && j.scheduleDate && j.scheduleTime){
+    const isScheduled = j.scheduleDate && j.scheduleTime &&
+      (j.subStatus==="Interview Scheduled"||j.subStatus==="Screening Scheduled"||
+       ["Technical Round 1","Technical Round 2","Manager Round","HR Round"].includes(j.subStatus));
+    if(isScheduled){
       const dt=new Date(`${j.scheduleDate}T${j.scheduleTime}`);
-      const msToInterview=dt.getTime()-Date.now();
-      if(msToInterview>0 && Notification.permission==="granted"){
+      if(dt.getTime()>Date.now()){
         scheduleSmartNotif(j, j.id);
       }
     }
   });
 }
+
+// Schedule post-interview check 1 hour after interview
+function schedulePostIvCheck(j){
+  if(_postIvTimers[j.id]) clearTimeout(_postIvTimers[j.id]);
+  const dt = new Date(`${j.scheduleDate}T${j.scheduleTime}`);
+  const msAfter1hr = dt.getTime() + 60*60*1000 - Date.now();
+  if(msAfter1hr > 0){
+    _postIvTimers[j.id] = setTimeout(()=>showPostIvPopup(j), msAfter1hr);
+  } else if(msAfter1hr > -2*60*60*1000){
+    // Within 2 hours after — show immediately if app is open
+    showPostIvPopup(j);
+  }
+}
+
+function showPostIvPopup(j){
+  _postIvJobId = j.id;
+  const labels = {
+    "Screening Scheduled":"Screening","Interview Scheduled":"Interview",
+    "Technical Round 1":"Technical Round 1","Technical Round 2":"Technical Round 2",
+    "Manager Round":"Manager Round","HR Round":"HR Round"
+  };
+  const label = labels[j.subStatus]||j.subStatus||"Interview";
+  document.getElementById("post-iv-title").textContent=`⏰ How did your ${label} go?`;
+  document.getElementById("post-iv-sub").textContent=`${j.company} — ${j.role} · ${fmt12(j.scheduleTime)||""}`;
+  document.getElementById("post-iv-actions").style.display="grid";
+  document.getElementById("post-iv-attended").style.display="none";
+  document.getElementById("post-iv-reschedule").style.display="none";
+  document.getElementById("post-iv-popup").style.display="flex";
+}
+
+window.closePostIv=()=>{
+  document.getElementById("post-iv-popup").style.display="none";
+  _postIvJobId=null;
+};
+
+window.postIvAction=(action)=>{
+  document.getElementById("post-iv-actions").style.display="none";
+  if(action==="attended"){
+    document.getElementById("post-iv-attended").style.display="block";
+  } else {
+    document.getElementById("post-iv-reschedule").style.display="block";
+    // Set min date to today
+    document.getElementById("piv-date").min=new Date().toISOString().split("T")[0];
+  }
+};
+
+window.submitAttended=async()=>{
+  const j=jobs.find(x=>x.id===_postIvJobId); if(!j) return;
+  const intName=document.getElementById("piv-intname").value.trim();
+  const intRole=document.getElementById("piv-introle").value.trim();
+  // Build history entry for completion
+  const histEntry={
+    status:j.status,
+    subStatus:j.subStatus==="Screening Scheduled"?"Screening Done":"Interviewed",
+    date:new Date().toISOString(),
+    interviewerName:intName,
+    interviewerRole:intRole,
+    note:"Marked attended via post-interview notification"
+  };
+  const updated={
+    ...j,
+    subStatus:j.subStatus==="Screening Scheduled"?"Screening Done":"Interviewed",
+    interviewerName:intName,
+    interviewerRole:intRole,
+    history:[...(j.history||[]),histEntry]
+  };
+  try{
+    await updateJob(j.id,updated);
+    closePostIv();
+    toast(`✅ ${j.company} marked as attended!`);
+  }catch(e){ toast("Error saving: "+e.message,"error"); }
+};
+
+window.submitRescheduled=async()=>{
+  const j=jobs.find(x=>x.id===_postIvJobId); if(!j) return;
+  const newDate=document.getElementById("piv-date").value;
+  const newTime=document.getElementById("piv-time").value;
+  const newMode=document.getElementById("piv-mode").value;
+  const newLink=document.getElementById("piv-link").value.trim();
+  const reason=document.getElementById("piv-reason").value.trim();
+  if(!newDate||!newTime) return toast("Kindly enter new date and time.","error");
+  // Save old schedule to history
+  const histEntry={
+    status:j.status,
+    subStatus:j.subStatus,
+    date:new Date().toISOString(),
+    scheduleDate:j.scheduleDate,
+    scheduleTime:j.scheduleTime,
+    scheduleMode:j.scheduleMode,
+    meetingLink:j.meetingLink||"",
+    note:"Rescheduled"+(reason?" — "+reason:""),
+    rescheduled:true
+  };
+  const updated={
+    ...j,
+    scheduleDate:newDate,
+    scheduleTime:newTime,
+    scheduleMode:newMode,
+    meetingLink:newLink,
+    history:[...(j.history||[]),histEntry]
+  };
+  try{
+    await updateJob(j.id,updated);
+    // Reschedule notifications for new time
+    scheduleSmartNotif(updated,j.id);
+    schedulePostIvCheck(updated);
+    closePostIv();
+    toast(`🔄 ${j.company} rescheduled successfully!`);
+  }catch(e){ toast("Error saving: "+e.message,"error"); }
+};
 
 
 // FORM
@@ -1085,7 +1257,7 @@ window.openEdit=id=>{
 // closeForm defined below in back button section
 
 function clearForm(){
-  ["fc","fr","fexp","fcl","fsal","floc","fjd","fcon","ffu","frl","frm","fiq","fid","fit","favl","favop","frefn","frefp","frefm","frefl","fcpl","favhrn","favhrp","favhrm","fhrn","fhrp","fhrm","ffb","fintname","fintrole"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  ["fc","fr","fexp","fcl","fsal","floc","fjd","fcon","ffu","frl","frm","fiq","fid","fit","favl","favop","frefn","frefp","frefm","frefl","fcpl","favhrn","favhrp","favhrm","fhrn","fhrp","fhrm","ffb","fintname","fintrole","fmlink"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
   ["fav","favh","favo","fsub","fid","fit","fim"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
   ["fav-others-box","fav-himself-box","fav-link-box","fav-ref-box","fav-cp-box","fav-hr-box","fav-social-other-box"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
   document.getElementById("hr-details-box").style.display="none";
@@ -1093,6 +1265,7 @@ function clearForm(){
   document.getElementById("sub-st-box").style.display="none";
   document.getElementById("schedule-box").style.display="none";
   document.getElementById("interviewer-box").style.display="none";
+  document.getElementById("meeting-link-box").style.display="none";
   document.getElementById("remarks-box").style.display="block";
   document.getElementById("fres").value="";document.getElementById("fst").value="Applied";
   onStChange();onResChange();
@@ -1123,12 +1296,13 @@ function fillForm(j){
     document.getElementById("sub-st-label").textContent=j.status==="Screening"?"Screening Stage":j.status==="Interview"?"Interview Stage":"Round";
   }
   s("fsub",j.subStatus||"");s("fid",j.scheduleDate||"");s("fit",j.scheduleTime||"");s("fim",j.scheduleMode||"");
-  s("fintname",j.interviewerName||"");s("fintrole",j.interviewerRole||"");
+  s("fintname",j.interviewerName||"");s("fintrole",j.interviewerRole||"");s("fmlink",j.meetingLink||"");
+  document.getElementById("meeting-link-box").style.display=(j.scheduleMode==="Video Call")?"block":"none";
   onStChange();onResChange();
 }
 function gf(){
   const g=id=>(document.getElementById(id)||{}).value||"";
-  return {company:g("fc"),role:g("fr"),experience:g("fexp"),client:g("fcl"),salaryOffering:g("fsal"),location:g("floc"),jobDescription:g("fjd"),appliedVia:g("fav"),socialPlatform:g("favo"),appliedViaOther:g("favop"),appliedViaLink:g("favl"),himselfHow:g("favh"),refName:g("frefn"),refPhone:g("frefp"),refEmail:g("frefm"),refLinkedIn:g("frefl"),careerPortalLink:g("fcpl"),appliedHrName:g("favhrn"),appliedHrPhone:g("favhrp"),appliedHrEmail:g("favhrm"),hrName:g("fhrn"),hrPhone:g("fhrp"),hrEmail:g("fhrm"),mailContactedOn:g("fcon"),followUpOn:g("ffu"),resumeEdited:g("fres"),resumeLink:g("frl"),status:g("fst"),subStatus:g("fsub"),remarks:g("frm"),feedback:g("ffb"),interviewQuestions:g("fiq"),scheduleDate:g("fid"),scheduleTime:g("fit"),scheduleMode:g("fim"),interviewerName:g("fintname"),interviewerRole:g("fintrole")};
+  return {company:g("fc"),role:g("fr"),experience:g("fexp"),client:g("fcl"),salaryOffering:g("fsal"),location:g("floc"),jobDescription:g("fjd"),appliedVia:g("fav"),socialPlatform:g("favo"),appliedViaOther:g("favop"),appliedViaLink:g("favl"),himselfHow:g("favh"),refName:g("frefn"),refPhone:g("frefp"),refEmail:g("frefm"),refLinkedIn:g("frefl"),careerPortalLink:g("fcpl"),appliedHrName:g("favhrn"),appliedHrPhone:g("favhrp"),appliedHrEmail:g("favhrm"),hrName:g("fhrn"),hrPhone:g("fhrp"),hrEmail:g("fhrm"),mailContactedOn:g("fcon"),followUpOn:g("ffu"),resumeEdited:g("fres"),resumeLink:g("frl"),status:g("fst"),subStatus:g("fsub"),remarks:g("frm"),feedback:g("ffb"),interviewQuestions:g("fiq"),scheduleDate:g("fid"),scheduleTime:g("fit"),scheduleMode:g("fim"),meetingLink:g("fmlink"),interviewerName:g("fintname"),interviewerRole:g("fintrole")};
 }
 // Track if Applied Via source is locked (set when status moves past Applied)
 let _favLocked = false;
@@ -1178,6 +1352,28 @@ window.onSocialPlatformChange=()=>{
   const v=document.getElementById("favo")?.value||"";
   const ob=document.getElementById("fav-social-other-box");
   if(ob) ob.style.display = v==="Others"?"block":"none";
+};
+
+// Show meeting link when Video Call selected
+window.onModeChange=()=>{
+  const m=document.getElementById("fim").value;
+  document.getElementById("meeting-link-box").style.display=m==="Video Call"?"block":"none";
+};
+window.onPivModeChange=()=>{
+  const m=document.getElementById("piv-mode").value;
+  document.getElementById("piv-link-box").style.display=m==="Video Call"?"block":"none";
+};
+window.setMeetLink=(type)=>{
+  const hints={"teams":"https://teams.microsoft.com/l/meetup-join/...","zoom":"https://zoom.us/j/...","meet":"https://meet.google.com/..."};
+  const el=document.getElementById("fmlink");
+  if(el && !el.value) el.value=hints[type]||"";
+  el.focus();
+};
+
+// Also show meeting link in fillForm
+window.onFimFill=()=>{
+  const m=document.getElementById("fim").value;
+  document.getElementById("meeting-link-box").style.display=m==="Video Call"?"block":"none";
 };
 
 window.onStChange=()=>{
@@ -1286,6 +1482,7 @@ window.onStChange=()=>{
   }
   document.getElementById("schedule-box").style.display="none";
   document.getElementById("interviewer-box").style.display="none";
+  document.getElementById("meeting-link-box").style.display="none";
   document.getElementById("feedback-box").style.display=s==="Rejected"?"block":"none";
   document.getElementById("remarks-box").style.display=s==="Rejected"?"none":"block";
   updateHrVisibility();
@@ -1393,6 +1590,7 @@ window.saveJob=async()=>{
       scheduleDate: d.scheduleDate||"",
       scheduleTime: d.scheduleTime||"",
       scheduleMode: d.scheduleMode||"",
+      meetingLink: d.meetingLink||"",
       interviewerName: d.interviewerName||"",
       interviewerRole: d.interviewerRole||"",
     };
@@ -1456,8 +1654,11 @@ function renderHistory(history){
             <span style="font-size:12px;font-weight:700;color:${st.color}">${stIcon[h.status]||"•"} ${h.status}${h.subStatus?" · "+h.subStatus:""}</span>
             <span style="font-size:10px;color:#475569">${dt} ${tm}</span>
           </div>
+          ${h.rescheduled?`<div style="font-size:10px;font-weight:700;color:#F59E0B;margin-top:3px">🔄 Rescheduled</div>`:""}
           ${h.scheduleDate?`<div style="font-size:11px;color:#60A5FA;margin-top:3px">📅 ${h.scheduleDate}${h.scheduleTime?" · "+fmt12(h.scheduleTime):""}${h.scheduleMode?" · "+h.scheduleMode:""}</div>`:""}
+          ${h.meetingLink?`<div style="font-size:11px;color:#38BDF8;margin-top:3px">🔗 <a href="${h.meetingLink}" target="_blank" style="color:#38BDF8">${h.meetingLink.length>40?h.meetingLink.slice(0,40)+"...":h.meetingLink}</a></div>`:""}
           ${h.interviewerName?`<div style="font-size:11px;color:#4ADE80;margin-top:3px">👤 ${h.interviewerName}${h.interviewerRole?" ("+h.interviewerRole+")":""}</div>`:""}
+          ${h.note?`<div style="font-size:11px;color:#64748B;margin-top:2px;font-style:italic">${h.note}</div>`:""}
         </div>`;
       }).join("")}
     </div>
