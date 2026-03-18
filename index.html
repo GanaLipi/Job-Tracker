@@ -1032,7 +1032,7 @@ function gf(){
 let _favLocked = false;
 // Track highest status reached in current form session
 let _highestStatus = "Applied";
-const _statusRank = {"Applied":0,"Under Process":1,"Interview Scheduled":2,"Interviewed":3,"Further Process":4,"Offered":5,"Rejected":2};
+const _statusRank = {"Applied":0,"Under Process":1,"Interview Scheduled":2,"Interviewed":3,"Further Process":4,"Offered":5,"Rejected":6};
 
 function _lockAppliedVia(lock){
   _favLocked = lock;
@@ -1085,29 +1085,30 @@ window.onStChange=()=>{
   const fst=document.getElementById("fst");
 
   // Block going back to Applied
-  if(s==="Applied" && _favLocked){
-    const pastUnderProcess = ["Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
-    // Block if highest status reached is past Under Process
-    if(pastUnderProcess.includes(_highestStatus)){
+  if(s==="Applied"){
+    const lockedStatuses = ["Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
+
+    // Always block if highest status in this session is past Under Process
+    if(lockedStatuses.includes(_highestStatus)){
       fst.value = _highestStatus;
       toast("The status cannot be moved back to Applied once it has progressed.","error");
       return;
     }
-    // Block if HR Details are filled (intentional move to Under Process)
-    const hrBox=document.getElementById("hr-details-box");
-    const hrFilled = hrBox && hrBox.style.display==="block" && (
-      ((document.getElementById("fhrn")||{}).value||"").trim() ||
-      ((document.getElementById("fhrp")||{}).value||"").trim() ||
-      ((document.getElementById("fhrm")||{}).value||"").trim()
-    );
-    if(hrFilled){
-      fst.value = _highestStatus;
+
+    // Block if HR Details have been filled
+    const hrn = ((document.getElementById("fhrn")||{}).value||"").trim();
+    const hrp = ((document.getElementById("fhrp")||{}).value||"").trim();
+    const hrm = ((document.getElementById("fhrm")||{}).value||"").trim();
+    if(hrn || hrp || hrm){
+      fst.value = _highestStatus || "Under Process";
       toast("The status cannot be moved back to Applied once HR Details are filled.","error");
       return;
     }
-    // HR Details empty + only Under Process → allow back to Applied (mistake)
+
+    // Safe to go back — HR empty, only reached Under Process
     _highestStatus = "Applied";
     _lockAppliedVia(false);
+    document.getElementById("hr-details-box").style.display="none";
   }
   // Block status change if Applied Via mandatory fields are not filled
   if(s !== "Applied"){
@@ -1162,8 +1163,8 @@ window.onStChange=()=>{
   const pastStatuses=["Under Process","Interview Scheduled","Interviewed","Further Process","Offered","Rejected"];
   if(pastStatuses.includes(s)){
     _lockAppliedVia(true);
-    // Track highest status reached this session
-    if(_statusRank[s] > _statusRank[_highestStatus]) _highestStatus = s;
+    // Always update highest status reached this session
+    if((_statusRank[s]||0) > (_statusRank[_highestStatus]||0)) _highestStatus = s;
   }
 
   document.getElementById("iv-box").style.display=(s==="Interview Scheduled"||s==="Interviewed")?"block":"none";
