@@ -598,7 +598,7 @@ const SUB_ST = {
 };
 
 // Status rank for progression tracking
-const STATUS_RANK = {"Applied":0,"Under Process":1,"Screening":2,"Interview":3,"Further Process":4,"Offered":5,"Rejected":2};
+const STATUS_RANK = {"Applied":0,"Under Process":1,"Screening":2,"Interview":3,"Further Process":4,"Offered":5,"Rejected":6};
 const STATUSES = Object.keys(ST);
 const SAMPLE = [
   {id:"d1",company:"Infosys BPM",role:"React Developer",jobDescription:"React, Redux, REST APIs",experience:"3-5 Yrs",hrName:"Sneha Iyer",contactNumber:"+91 98001 11222",mailId:"sneha.iyer@infosys.com",client:"Direct",salaryOffering:"12 LPA",resumeEdited:"Yes",resumeLink:"https://docs.google.com/document/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms/preview",mailContactedOn:"2026-03-05",followUpOn:"2026-03-15",status:"Interview Scheduled",remarks:"Round 1 cleared",interviewDate:"2026-03-18",interviewTime:"10:30",interviewMode:"Video Call",interviewQuestions:"Explain Virtual DOM?\nWhat is Redux Thunk?\nCSS Flexbox vs Grid?"},
@@ -1114,6 +1114,14 @@ function fillForm(j){
   _lockAppliedVia(pastApplied.includes(j.status));
   s("fcon",j.mailContactedOn);s("ffu",j.followUpOn);s("fres",j.resumeEdited);s("frl",j.resumeLink);
   s("fst",j.status);s("frm",j.remarks);s("ffb",j.feedback);s("fiq",j.interviewQuestions);
+  // Repopulate sub-status options before setting value
+  const subSel=document.getElementById("fsub");
+  const hasSub=["Screening","Interview","Further Process"].includes(j.status);
+  if(hasSub && subSel){
+    subSel.innerHTML='<option value="">— Select —</option>'+(SUB_ST[j.status]||[]).map(o=>`<option>${o}</option>`).join("");
+    document.getElementById("sub-st-box").style.display="block";
+    document.getElementById("sub-st-label").textContent=j.status==="Screening"?"Screening Stage":j.status==="Interview"?"Interview Stage":"Round";
+  }
   s("fsub",j.subStatus||"");s("fid",j.scheduleDate||"");s("fit",j.scheduleTime||"");s("fim",j.scheduleMode||"");
   s("fintname",j.interviewerName||"");s("fintrole",j.interviewerRole||"");
   onStChange();onResChange();
@@ -1126,7 +1134,7 @@ function gf(){
 let _favLocked = false;
 // Track highest status reached in current form session
 let _highestStatus = "Applied";
-// Use STATUS_RANK from ST definition above
+const _statusRank = STATUS_RANK;
 
 function _lockAppliedVia(lock){
   _favLocked = lock;
