@@ -371,25 +371,7 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
         <div style="grid-column:10/17"></div>
       </div>
       <table class="dtbl" id="dtbl">
-        <thead><tr>
-          <th style="width:50px;text-align:center">No.</th>
-          <th style="width:160px">Company<br><span style="font-size:9px;opacity:0.5">(PayRoll)</span></th>
-          <th style="width:140px">Role</th>
-          <th style="width:170px">Job Description</th>
-          <th style="width:100px;text-align:center">Experience</th>
-          <th style="width:130px">Contact Person</th>
-          <th style="width:150px">Contact Details</th>
-          <th style="width:90px;text-align:center">Client</th>
-          <th style="width:110px;text-align:center">Salary</th>
-          <th style="width:110px;text-align:center">Location</th>
-          <th style="width:130px">Applied Via</th>
-          <th style="width:110px;text-align:center">Resume<br><span style="font-size:9px;opacity:0.5">(Edited)</span></th>
-          <th style="width:105px;text-align:center">Contacted</th>
-          <th style="width:105px;text-align:center">Follow-up</th>
-          <th style="width:155px">Status</th>
-          <th style="width:130px">Remarks</th>
-          <th style="width:185px">Interview Q's / Actions</th>
-        </tr></thead>
+        <thead id="thead"><tr id="thead-row"></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
     </div>
@@ -994,56 +976,124 @@ function renderCards(f){
   }).join("");
 }
 
+// Column definitions per status filter
+function getTableCols(filterStatus){
+  // Base columns always shown
+  const base = [
+    {h:"No.",          w:"50px",  center:true, fn:(j,i)=>`<td style="text-align:center;color:#4B5563">${i+1}</td>`},
+    {h:"Company",      w:"150px", fn:(j)=>`<td style="color:#E2E8F0;font-weight:700;cursor:pointer" onclick="openView('${j.id}')">${x(j.company)||"—"}</td>`},
+    {h:"Role",         w:"130px", fn:(j)=>`<td style="color:#38BDF8;font-weight:600">${x(j.role)||"—"}</td>`},
+    {h:"Experience",   w:"90px",  center:true, fn:(j)=>`<td style="text-align:center;color:#4B5563">${x(j.experience)||"—"}</td>`},
+    {h:"Location",     w:"100px", center:true, fn:(j)=>`<td style="text-align:center;color:#94A3B8">${x(j.location)||"—"}</td>`},
+    {h:"Salary",       w:"100px", center:true, fn:(j)=>`<td style="text-align:center;color:#4ADE80;font-weight:700">${x(j.salaryOffering)||"—"}</td>`},
+    {h:"Applied Via",  w:"120px", fn:(j)=>`<td style="text-align:center">${j.appliedVia?`<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#1E293B;color:#94A3B8">${x(j.appliedVia)}${j.socialPlatform?" · "+x(j.socialPlatform):""}${j.himselfHow?" · "+x(j.himselfHow):""}</span>`:"—"}</td>`},
+    {h:"Status",       w:"150px", fn:(j)=>`<td>${stCell(j)}</td>`},
+    {h:"Contacted",    w:"100px", center:true, fn:(j)=>`<td style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:#64748B">${j.mailContactedOn||"—"}</td>`},
+    {h:"Follow-up",    w:"100px", center:true, fn:(j)=>{
+      const past=j.followUpOn&&new Date(j.followUpOn)<new Date();
+      return `<td style="text-align:center">${j.followUpOn?`<span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:${past?"#F87171":"#4ADE80"}">${j.followUpOn}</span>`:"—"}</td>`;
+    }},
+  ];
+
+  // Referral columns
+  const refCols = [
+    {h:"Referral Name",    w:"120px", fn:(j)=>`<td style="color:#7DD3FC;font-size:11px">${x(j.refName)||"—"}</td>`},
+    {h:"Referral Contact", w:"140px", fn:(j)=>`<td style="color:#7DD3FC;font-family:'DM Mono',monospace;font-size:11px">${j.refPhone?`<div>${x(j.refPhone)}</div>`:""}${j.refEmail?`<div>${x(j.refEmail)}</div>`:""}${!j.refPhone&&!j.refEmail?"—":""}</td>`},
+  ];
+
+  // HR columns (Applied Via HR or HR Details)
+  const hrCols = [
+    {h:"HR Name",    w:"120px", fn:(j)=>`<td style="color:#7DD3FC;font-size:11px">${x(j.appliedHrName||j.hrName)||"—"}</td>`},
+    {h:"HR Contact", w:"140px", fn:(j)=>`<td style="color:#7DD3FC;font-family:'DM Mono',monospace;font-size:11px">${(j.appliedHrPhone||j.hrPhone)?`<div>${x(j.appliedHrPhone||j.hrPhone)}</div>`:""}${(j.appliedHrEmail||j.hrEmail)?`<div>${x(j.appliedHrEmail||j.hrEmail)}</div>`:""}${!j.appliedHrPhone&&!j.hrPhone&&!j.appliedHrEmail&&!j.hrEmail?"—":""}</td>`},
+  ];
+
+  // Schedule columns
+  const schedCols = [
+    {h:"Stage",         w:"120px", fn:(j)=>`<td style="color:#C4B5FD;font-size:11px;font-weight:600">${x(j.subStatus)||"—"}</td>`},
+    {h:"Schedule Date", w:"105px", center:true, fn:(j)=>`<td style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:#60A5FA">${j.scheduleDate||"—"}</td>`},
+    {h:"Time",          w:"80px",  center:true, fn:(j)=>`<td style="text-align:center;font-size:11px;color:#60A5FA">${fmt12(j.scheduleTime)||"—"}</td>`},
+    {h:"Mode",          w:"100px", center:true, fn:(j)=>`<td style="text-align:center;font-size:11px;color:#94A3B8">${x(j.scheduleMode)||"—"}</td>`},
+  ];
+
+  // Interviewer columns
+  const intCols = [
+    {h:"Interviewer",      w:"120px", fn:(j)=>`<td style="color:#4ADE80;font-size:11px">${x(j.interviewerName)||"—"}</td>`},
+    {h:"Interviewer Role", w:"120px", fn:(j)=>`<td style="color:#64748B;font-size:11px">${x(j.interviewerRole)||"—"}</td>`},
+  ];
+
+  // Remarks/Feedback
+  const remarkCol = {h:"Remarks", w:"130px", fn:(j)=>`<td style="color:#4B5563;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x(j.remarks)||"—"}</td>`};
+  const feedbackCol = {h:"Feedback", w:"150px", fn:(j)=>`<td style="color:#FCA5A5;font-size:11px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x(j.feedback)||"—"}</td>`};
+
+  // Resume col
+  const resumeCol = {h:"Resume", w:"100px", center:true, fn:(j)=>{
+    if(!j.resumeEdited) return '<td style="text-align:center">—</td>';
+    const bg=j.resumeEdited==="Yes"?"#14532D":"#292524";
+    const clr=j.resumeEdited==="Yes"?"#4ADE80":"#78716C";
+    const badge='<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:'+bg+';color:'+clr+'">'+j.resumeEdited+'</span>';
+    const link=j.resumeEdited==="Yes"?(j.resumeLink?'<br><span style="font-size:10px;color:#60A5FA;cursor:pointer" onclick="openView(\"'+j.id+'\")">📄</span>':'<br><span style="font-size:10px;color:#F87171">⚠️</span>'):"";
+    return '<td style="text-align:center">'+badge+link+"</td>";
+  }};
+
+  // Actions col
+  const actionsCol = {h:"Actions", w:"185px", fn:(j)=>{
+    const qs=(j.interviewQuestions||"").split("\n").filter(Boolean);
+    const qBadge = qs.length ? '<span style="font-size:11px;color:#C084FC;font-weight:600;background:#2D1B4E;padding:2px 8px;border-radius:20px;cursor:pointer;white-space:nowrap" onclick="openView(\'' + j.id + '\'")>📋 ' + qs.length + ' Q</span>' : '<span style="color:#374151;font-size:11px">—</span>';
+    return '<td><div style="display:flex;align-items:center;gap:5px">' + qBadge + '<button onclick="openEdit(\'' + j.id + '\')" style="padding:4px 7px;border-radius:6px;border:1px solid #334155;background:#0F172A;color:#94A3B8;font-size:11px;cursor:pointer">✏️</button><button onclick="confirmDel(\'' + j.id + '\')" style="padding:4px 7px;border-radius:6px;border:1px solid #3F1515;background:#1C0A0A;color:#F87171;font-size:11px;cursor:pointer">🗑️</button></div></td>';
+  }};
+
+  // Build column set based on filter
+  let cols = [...base];
+
+  if(filterStatus==="Applied"){
+    cols.splice(6,0,...refCols); // show referral after Applied Via
+  } else if(filterStatus==="Under Process"){
+    cols.splice(6,0,...refCols,...hrCols);
+    cols.push(remarkCol);
+  } else if(filterStatus==="Screening"){
+    cols.splice(6,0,...hrCols,...schedCols,...intCols);
+    cols.push(remarkCol);
+  } else if(filterStatus==="Interview"){
+    cols.splice(6,0,...hrCols,...schedCols,...intCols);
+    cols.push(remarkCol);
+  } else if(filterStatus==="Further Process"){
+    cols.splice(6,0,...hrCols,...schedCols,...intCols);
+    cols.push(remarkCol);
+  } else if(filterStatus==="Offered"){
+    cols.splice(6,0,...hrCols);
+    cols.push(remarkCol);
+  } else if(filterStatus==="Rejected"){
+    cols.splice(6,0,...refCols,...hrCols);
+    cols.push(feedbackCol);
+  } else {
+    // All — compact default
+    cols.splice(6,0,
+      {h:"Contact",w:"130px",fn:(j)=>{
+        const name=x(j.refName||j.appliedHrName||j.hrName)||"—";
+        const contact=x(j.refPhone||j.appliedHrPhone||j.hrPhone||j.refEmail||j.appliedHrEmail||j.hrEmail)||"";
+        return '<td style="color:#7DD3FC;font-size:11px">'+name+(contact?'<br><span style="font-size:10px;color:#475569">'+contact+'</span>':"")+"</td>";
+      }}
+    );
+    cols.push(remarkCol);
+  }
+
+  cols.push(resumeCol, actionsCol);
+  return cols;
+}
+
 function renderTable(f){
-  document.getElementById("tbody").innerHTML=f.map((j,i)=>{
-    const st=ST[j.status]||ST["Applied"],qs=(j.interviewQuestions||"").split("\n").filter(Boolean);
-    const past=j.followUpOn&&new Date(j.followUpOn)<new Date();
-    const isIv=(j.status==="Interview"&&(j.subStatus==="Interview Scheduled"||j.subStatus==="Interviewed"))||(j.status==="Screening"&&(j.subStatus==="Screening Scheduled"||j.subStatus==="Screening Done"));
+  const cols = getTableCols(filterSt);
+
+  // Render headers
+  document.getElementById("thead-row").innerHTML = cols.map(c=>
+    `<th style="width:${c.w||"auto"};${c.center?"text-align:center;":""}">${c.h}</th>`
+  ).join("");
+
+  // Render rows
+  document.getElementById("tbody").innerHTML = f.map((j,i)=>{
     const bg=i%2?"#192130":"#1E293B";
     return `<tr style="background:${bg}" onmouseenter="this.style.background='#243044'" onmouseleave="this.style.background='${bg}'">
-      <td style="text-align:center;color:#4B5563">${i+1}</td>
-      <td style="color:#E2E8F0;font-weight:700;cursor:pointer" onclick="openView('${j.id}')">${x(j.company)||"—"}</td>
-      <td style="color:#38BDF8;font-weight:600">${x(j.role)||"—"}</td>
-      <td style="color:#4B5563;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${x(j.jobDescription)}">${x(j.jobDescription)||"—"}</td>
-      <td style="text-align:center;color:#4B5563">${x(j.experience)||"—"}</td>
-
-      <td style="color:#7DD3FC;font-size:11px">
-        ${j.refName?`<div>👥 ${x(j.refName)}</div>`:""}
-        ${j.appliedHrName?`<div>👤 ${x(j.appliedHrName)}</div>`:""}
-        ${j.hrName?`<div>🧑‍💼 ${x(j.hrName)}</div>`:""}
-        ${!j.refName&&!j.appliedHrName&&!j.hrName?"—":""}
-      </td>
-      <td style="color:#7DD3FC;font-family:'DM Mono',monospace;font-size:11px">
-        ${j.refPhone?`<div>${x(j.refPhone)}</div>`:""}
-        ${j.refEmail?`<div>${x(j.refEmail)}</div>`:""}
-        ${j.appliedHrPhone?`<div>${x(j.appliedHrPhone)}</div>`:""}
-        ${j.appliedHrEmail?`<div>${x(j.appliedHrEmail)}</div>`:""}
-        ${j.hrPhone?`<div>${x(j.hrPhone)}</div>`:""}
-        ${j.hrEmail?`<div>${x(j.hrEmail)}</div>`:""}
-        ${!j.refPhone&&!j.refEmail&&!j.appliedHrPhone&&!j.appliedHrEmail&&!j.hrPhone&&!j.hrEmail?"—":""}
-      </td>
-      <td style="text-align:center;color:#4B5563">${x(j.client)||"—"}</td>
-      <td style="text-align:center;color:#4ADE80;font-weight:700">${x(j.salaryOffering)||"—"}</td>
-      <td style="text-align:center;color:#94A3B8">${x(j.location)||"—"}</td>
-      <td style="text-align:center">${j.appliedVia?`<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#1E293B;color:#94A3B8">${x(j.appliedVia)}${j.socialPlatform?" · "+x(j.socialPlatform):""}${j.himselfHow?" · "+x(j.himselfHow):""}</span>`:"—"}</td>
-      <td style="text-align:center">${j.resumeEdited?`<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-        <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:${j.resumeEdited==="Yes"?"#14532D":"#292524"};color:${j.resumeEdited==="Yes"?"#4ADE80":"#78716C"}">${j.resumeEdited}</span>
-        ${j.resumeEdited==="Yes"?(j.resumeLink?`<span style="font-size:10px;color:#60A5FA;cursor:pointer" onclick="openView('${j.id}')">📄 Preview</span>`:`<span style="font-size:10px;color:#F87171">⚠️ Missing</span>`):""}
-      </div>`:"—"}</td>
-      <td style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:#64748B">${j.mailContactedOn||"—"}</td>
-      <td style="text-align:center">
-        ${j.followUpOn?`<span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:${past?"#F87171":"#4ADE80"}">${j.followUpOn}</span>`:"—"}
-        ${isIv&&j.interviewDate?`<div style="margin-top:3px"><span style="font-size:10px;font-weight:700;color:#60A5FA;background:#0C1A3F;padding:2px 6px;border-radius:9px;border:1px solid #1E40AF;white-space:nowrap">🗓 ${j.interviewDate}</span></div>`:""}
-      </td>
-      <td>${stCell(j)}</td>
-      <td style="color:#4B5563;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x(j.remarks)||"—"}</td>
-      <td>
-        <div style="display:flex;align-items:center;gap:5px">
-          ${qs.length?`<span style="font-size:11px;color:#C084FC;font-weight:600;background:#2D1B4E;padding:2px 8px;border-radius:20px;cursor:pointer;white-space:nowrap" onclick="openView('${j.id}')">📋 ${qs.length} Q</span>`:`<span style="color:#374151;font-size:11px">—</span>`}
-          <button onclick="openEdit('${j.id}')" style="padding:4px 7px;border-radius:6px;border:1px solid #334155;background:#0F172A;color:#94A3B8;font-size:11px;cursor:pointer">✏️</button>
-          <button onclick="confirmDel('${j.id}')" style="padding:4px 7px;border-radius:6px;border:1px solid #3F1515;background:#1C0A0A;color:#F87171;font-size:11px;cursor:pointer">🗑️</button>
-        </div>
-      </td>
+      ${cols.map(c=>c.fn(j,i)).join("")}
     </tr>`;
   }).join("");
 }
