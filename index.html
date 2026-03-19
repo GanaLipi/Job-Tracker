@@ -978,10 +978,9 @@ function renderCards(f){
 
 // Column definitions per status filter
 function getTableCols(filterStatus){
-  // Determine if HR should show based on filter
-  const showHR = filterStatus !== "All" && filterStatus !== "Applied";
-
   const cols = [];
+  // Status levels where HR is relevant
+  const hrStatuses = ["Under Process","Screening","Interview","Further Process","Offered","Rejected"];
 
   // ── No. ──────────────────────────────────────────────────────
   cols.push({h:"No.", g:"", w:"45px", center:true,
@@ -1016,17 +1015,19 @@ function getTableCols(filterStatus){
       return `<td style="font-size:11px;font-family:'DM Mono',monospace;color:#C4B5FD">${ph?`<div>${x(ph)}</div>`:""}${em?`<div style="font-size:10px">${x(em)}</div>`:""}${!ph&&!em?"—":""}</td>`;
     }});
 
-  // ── HR Details (show when Under Process and above) ───────────
-  if(showHR){
-    cols.push({h:"HR Name", g:"HR Details", w:"120px",
-      fn:(j)=>`<td style="color:#7DD3FC;font-size:11px">${x(j.appliedHrName||j.hrName)||"—"}</td>`});
-    cols.push({h:"HR Contact", g:"HR Details", w:"140px",
-      fn:(j)=>{
-        const ph=j.appliedHrPhone||j.hrPhone||"";
-        const em=j.appliedHrEmail||j.hrEmail||"";
-        return `<td style="font-size:11px;font-family:'DM Mono',monospace;color:#7DD3FC">${ph?`<div>${x(ph)}</div>`:""}${em?`<div style="font-size:10px">${x(em)}</div>`:""}${!ph&&!em?"—":""}</td>`;
-      }});
-  }
+  // ── HR Details (always show columns, populate only when Under Process+) ──
+  cols.push({h:"HR Name", g:"HR Details", w:"120px",
+    fn:(j)=>{
+      if(!hrStatuses.includes(j.status)) return `<td style="color:#334155;font-size:11px;text-align:center">—</td>`;
+      return `<td style="color:#4ADE80;font-size:11px;font-weight:600">${x(j.appliedHrName||j.hrName)||"—"}</td>`;
+    }});
+  cols.push({h:"HR Contact", g:"HR Details", w:"150px",
+    fn:(j)=>{
+      if(!hrStatuses.includes(j.status)) return `<td style="color:#334155;font-size:11px;text-align:center">—</td>`;
+      const ph=j.appliedHrPhone||j.hrPhone||"";
+      const em=j.appliedHrEmail||j.hrEmail||"";
+      return `<td style="font-size:11px;font-family:'DM Mono',monospace;color:#4ADE80">${ph?`<div>${x(ph)}</div>`:""}${em?`<div style="font-size:10px;color:#34D399">${x(em)}</div>`:""}${!ph&&!em?"—":""}</td>`;
+    }});
 
   // ── Activity ─────────────────────────────────────────────────
   cols.push({h:"Contacted", g:"Activity", w:"100px", center:true,
@@ -1619,22 +1620,19 @@ function needsHrOnStatus(){
   // Self → HR: never show hr-details-box — HR info already in Applied Via section
   if(via==="Self" && how==="HR") return false;
 
+  // Show HR Details for ANY Applied Via when status is Under Process or above
   const processed=["Under Process","Screening","Interview","Further Process","Offered"];
+  if(processed.includes(st)) return true;
 
-  // For Social Media / Career Portal / Referral:
-  if(via==="Social Media" || (via==="Self" && how==="Career Portal") || (via==="Self" && how==="Referral")){
-    // If status is one of the processed statuses → show HR
-    if(processed.includes(st)) return true;
-    // If status is Rejected → check if HR details are already filled (came through Under Process etc.)
-    if(st==="Rejected"){
-      const hrn=(document.getElementById("fhrn")||{}).value||"";
-      const hrp=(document.getElementById("fhrp")||{}).value||"";
-      const hrm=(document.getElementById("fhrm")||{}).value||"";
-      return !!(hrn||hrp||hrm);
-    }
-    // Status = Applied → hide HR
-    return false;
+  // Status is Rejected → show only if HR details already filled
+  if(st==="Rejected"){
+    const hrn=(document.getElementById("fhrn")||{}).value||"";
+    const hrp=(document.getElementById("fhrp")||{}).value||"";
+    const hrm=(document.getElementById("fhrm")||{}).value||"";
+    return !!(hrn||hrp||hrm);
   }
+
+  // Applied → hide
   return false;
 }
 
