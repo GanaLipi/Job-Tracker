@@ -371,7 +371,7 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
         <div style="grid-column:10/17"></div>
       </div>
       <table class="dtbl" id="dtbl">
-        <thead id="thead"><tr id="thead-row"></tr></thead>
+        <thead id="thead"><tr id="thead-group-row"></tr><tr id="thead-row"></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
     </div>
@@ -978,118 +978,103 @@ function renderCards(f){
 
 // Column definitions per status filter
 function getTableCols(filterStatus){
-  // Base columns always shown
-  const base = [
-    {h:"No.",          w:"50px",  center:true, fn:(j,i)=>`<td style="text-align:center;color:#4B5563">${i+1}</td>`},
-    {h:"Company",      w:"150px", fn:(j)=>`<td style="color:#E2E8F0;font-weight:700;cursor:pointer" onclick="openView('${j.id}')">${x(j.company)||"—"}</td>`},
-    {h:"Role",         w:"130px", fn:(j)=>`<td style="color:#38BDF8;font-weight:600">${x(j.role)||"—"}</td>`},
-    {h:"Experience",   w:"90px",  center:true, fn:(j)=>`<td style="text-align:center;color:#4B5563">${x(j.experience)||"—"}</td>`},
-    {h:"Location",     w:"100px", center:true, fn:(j)=>`<td style="text-align:center;color:#94A3B8">${x(j.location)||"—"}</td>`},
-    {h:"Salary",       w:"100px", center:true, fn:(j)=>`<td style="text-align:center;color:#4ADE80;font-weight:700">${x(j.salaryOffering)||"—"}</td>`},
-    {h:"Applied Via",  w:"120px", fn:(j)=>`<td style="text-align:center">${j.appliedVia?`<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#1E293B;color:#94A3B8">${x(j.appliedVia)}${j.socialPlatform?" · "+x(j.socialPlatform):""}${j.himselfHow?" · "+x(j.himselfHow):""}</span>`:"—"}</td>`},
-    {h:"Status",       w:"150px", fn:(j)=>`<td>${stCell(j)}</td>`},
-    {h:"Contacted",    w:"100px", center:true, fn:(j)=>`<td style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:#64748B">${j.mailContactedOn||"—"}</td>`},
-    {h:"Follow-up",    w:"100px", center:true, fn:(j)=>{
-      const past=j.followUpOn&&new Date(j.followUpOn)<new Date();
-      return `<td style="text-align:center">${j.followUpOn?`<span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:${past?"#F87171":"#4ADE80"}">${j.followUpOn}</span>`:"—"}</td>`;
-    }},
-  ];
+  // Determine if HR should show based on filter
+  const showHR = filterStatus !== "All" && filterStatus !== "Applied";
 
-  // Referral columns
-  const refCols = [
-    {h:"Referral Name",    w:"120px", fn:(j)=>`<td style="color:#7DD3FC;font-size:11px">${x(j.refName)||"—"}</td>`},
-    {h:"Referral Contact", w:"140px", fn:(j)=>`<td style="color:#7DD3FC;font-family:'DM Mono',monospace;font-size:11px">${j.refPhone?`<div>${x(j.refPhone)}</div>`:""}${j.refEmail?`<div>${x(j.refEmail)}</div>`:""}${!j.refPhone&&!j.refEmail?"—":""}</td>`},
-  ];
+  const cols = [];
 
-  // HR columns (Applied Via HR or HR Details)
-  const hrCols = [
-    {h:"HR Name",    w:"120px", fn:(j)=>`<td style="color:#7DD3FC;font-size:11px">${x(j.appliedHrName||j.hrName)||"—"}</td>`},
-    {h:"HR Contact", w:"140px", fn:(j)=>`<td style="color:#7DD3FC;font-family:'DM Mono',monospace;font-size:11px">${(j.appliedHrPhone||j.hrPhone)?`<div>${x(j.appliedHrPhone||j.hrPhone)}</div>`:""}${(j.appliedHrEmail||j.hrEmail)?`<div>${x(j.appliedHrEmail||j.hrEmail)}</div>`:""}${!j.appliedHrPhone&&!j.hrPhone&&!j.appliedHrEmail&&!j.hrEmail?"—":""}</td>`},
-  ];
+  // ── No. ──────────────────────────────────────────────────────
+  cols.push({h:"No.", g:"", w:"45px", center:true,
+    fn:(j,i)=>`<td style="text-align:center;color:#4B5563;font-size:11px">${i+1}</td>`});
 
-  // Schedule columns
-  const schedCols = [
-    {h:"Stage",         w:"120px", fn:(j)=>`<td style="color:#C4B5FD;font-size:11px;font-weight:600">${x(j.subStatus)||"—"}</td>`},
-    {h:"Schedule Date", w:"105px", center:true, fn:(j)=>`<td style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:#60A5FA">${j.scheduleDate||"—"}</td>`},
-    {h:"Time",          w:"80px",  center:true, fn:(j)=>`<td style="text-align:center;font-size:11px;color:#60A5FA">${fmt12(j.scheduleTime)||"—"}</td>`},
-    {h:"Mode",          w:"100px", center:true, fn:(j)=>`<td style="text-align:center;font-size:11px;color:#94A3B8">${x(j.scheduleMode)||"—"}</td>`},
-  ];
+  // ── Job Details ──────────────────────────────────────────────
+  cols.push({h:"Company", g:"Job Details", w:"160px",
+    fn:(j)=>`<td style="color:#E2E8F0;font-weight:700;cursor:pointer;font-size:13px" onclick="openView('${j.id}')">${x(j.company)||"—"}<div style="font-size:10px;color:#38BDF8;font-weight:600;margin-top:2px">${x(j.role)||""}</div>${j.location?`<div style="font-size:10px;color:#475569;margin-top:1px">📍 ${x(j.location)}</div>`:""}</td>`});
+  cols.push({h:"Experience", g:"Job Details", w:"90px", center:true,
+    fn:(j)=>`<td style="text-align:center;color:#94A3B8;font-size:12px">${x(j.experience)||"—"}</td>`});
+  cols.push({h:"Salary", g:"Job Details", w:"100px", center:true,
+    fn:(j)=>`<td style="text-align:center;color:#4ADE80;font-weight:700;font-size:12px">${x(j.salaryOffering)||"—"}</td>`});
 
-  // Interviewer columns
-  const intCols = [
-    {h:"Interviewer",      w:"120px", fn:(j)=>`<td style="color:#4ADE80;font-size:11px">${x(j.interviewerName)||"—"}</td>`},
-    {h:"Interviewer Role", w:"120px", fn:(j)=>`<td style="color:#64748B;font-size:11px">${x(j.interviewerRole)||"—"}</td>`},
-  ];
+  // ── Applied Via ──────────────────────────────────────────────
+  cols.push({h:"Source", g:"Applied Via", w:"120px",
+    fn:(j)=>`<td style="font-size:11px;color:#94A3B8">${j.appliedVia?`<div style="font-weight:600">${x(j.appliedVia)}${j.socialPlatform?" · "+x(j.socialPlatform):""}${j.himselfHow?" · "+x(j.himselfHow):""}</div>`:""} ${j.appliedViaLink?`<div style="margin-top:2px"><a href="${x(j.appliedViaLink)}" target="_blank" style="color:#38BDF8;font-size:10px">🔗 Link</a></div>`:""}${!j.appliedVia?"—":""}</td>`});
 
-  // Remarks/Feedback
-  const remarkCol = {h:"Remarks", w:"130px", fn:(j)=>`<td style="color:#4B5563;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x(j.remarks)||"—"}</td>`};
-  const feedbackCol = {h:"Feedback", w:"150px", fn:(j)=>`<td style="color:#FCA5A5;font-size:11px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x(j.feedback)||"—"}</td>`};
-
-  // Resume col
-  const resumeCol = {h:"Resume", w:"100px", center:true, fn:(j)=>{
-    if(!j.resumeEdited) return '<td style="text-align:center">—</td>';
-    const bg=j.resumeEdited==="Yes"?"#14532D":"#292524";
-    const clr=j.resumeEdited==="Yes"?"#4ADE80":"#78716C";
-    const badge='<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:'+bg+';color:'+clr+'">'+j.resumeEdited+'</span>';
-    const link=j.resumeEdited==="Yes"?(j.resumeLink?'<br><span style="font-size:10px;color:#60A5FA;cursor:pointer" onclick="openView(\"'+j.id+'\")">📄</span>':'<br><span style="font-size:10px;color:#F87171">⚠️</span>'):"";
-    return '<td style="text-align:center">'+badge+link+"</td>";
-  }};
-
-  // Actions col
-  const actionsCol = {h:"Actions", w:"185px", fn:(j)=>{
-    const qs=(j.interviewQuestions||"").split("\n").filter(Boolean);
-    const qBadge = qs.length ? '<span style="font-size:11px;color:#C084FC;font-weight:600;background:#2D1B4E;padding:2px 8px;border-radius:20px;cursor:pointer;white-space:nowrap" onclick="openView(\'' + j.id + '\'")>📋 ' + qs.length + ' Q</span>' : '<span style="color:#374151;font-size:11px">—</span>';
-    return '<td><div style="display:flex;align-items:center;gap:5px">' + qBadge + '<button onclick="openEdit(\'' + j.id + '\')" style="padding:4px 7px;border-radius:6px;border:1px solid #334155;background:#0F172A;color:#94A3B8;font-size:11px;cursor:pointer">✏️</button><button onclick="confirmDel(\'' + j.id + '\')" style="padding:4px 7px;border-radius:6px;border:1px solid #3F1515;background:#1C0A0A;color:#F87171;font-size:11px;cursor:pointer">🗑️</button></div></td>';
-  }};
-
-  // Build column set based on filter
-  let cols = [...base];
-
-  if(filterStatus==="Applied"){
-    cols.splice(6,0,...refCols); // show referral after Applied Via
-  } else if(filterStatus==="Under Process"){
-    cols.splice(6,0,...refCols,...hrCols);
-    cols.push(remarkCol);
-  } else if(filterStatus==="Screening"){
-    cols.splice(6,0,...hrCols,...schedCols,...intCols);
-    cols.push(remarkCol);
-  } else if(filterStatus==="Interview"){
-    cols.splice(6,0,...hrCols,...schedCols,...intCols);
-    cols.push(remarkCol);
-  } else if(filterStatus==="Further Process"){
-    cols.splice(6,0,...hrCols,...schedCols,...intCols);
-    cols.push(remarkCol);
-  } else if(filterStatus==="Offered"){
-    cols.splice(6,0,...hrCols);
-    cols.push(remarkCol);
-  } else if(filterStatus==="Rejected"){
-    cols.splice(6,0,...refCols,...hrCols);
-    cols.push(feedbackCol);
-  } else {
-    // All — compact default
-    cols.splice(6,0,
-      {h:"Contact",w:"130px",fn:(j)=>{
-        const name=x(j.refName||j.appliedHrName||j.hrName)||"—";
-        const contact=x(j.refPhone||j.appliedHrPhone||j.hrPhone||j.refEmail||j.appliedHrEmail||j.hrEmail)||"";
-        return '<td style="color:#7DD3FC;font-size:11px">'+name+(contact?'<br><span style="font-size:10px;color:#475569">'+contact+'</span>':"")+"</td>";
-      }}
-    );
-    cols.push(remarkCol);
+  // ── HR Details (show when Under Process and above) ───────────
+  if(showHR){
+    cols.push({h:"HR Name", g:"HR Details", w:"120px",
+      fn:(j)=>`<td style="color:#7DD3FC;font-size:11px">${x(j.appliedHrName||j.hrName)||"—"}</td>`});
+    cols.push({h:"HR Contact", g:"HR Details", w:"140px",
+      fn:(j)=>{
+        const ph=j.appliedHrPhone||j.hrPhone||"";
+        const em=j.appliedHrEmail||j.hrEmail||"";
+        return `<td style="font-size:11px;font-family:'DM Mono',monospace;color:#7DD3FC">${ph?`<div>${x(ph)}</div>`:""}${em?`<div style="font-size:10px">${x(em)}</div>`:""}${!ph&&!em?"—":""}</td>`;
+      }});
   }
 
-  cols.push(resumeCol, actionsCol);
+  // ── Activity ─────────────────────────────────────────────────
+  cols.push({h:"Contacted", g:"Activity", w:"100px", center:true,
+    fn:(j)=>`<td style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:#64748B">${j.mailContactedOn||"—"}</td>`});
+  cols.push({h:"Follow-up", g:"Activity", w:"100px", center:true,
+    fn:(j)=>{
+      const past=j.followUpOn&&new Date(j.followUpOn)<new Date();
+      return `<td style="text-align:center">${j.followUpOn?`<span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:${past?"#F87171":"#4ADE80"}">${j.followUpOn}</span>`:"—"}</td>`;
+    }});
+
+  // ── Status ───────────────────────────────────────────────────
+  cols.push({h:"Status", g:"", w:"160px",
+    fn:(j)=>`<td>${stCell(j)}</td>`});
+
+  // ── Remarks ──────────────────────────────────────────────────
+  cols.push({h:"Remarks", g:"", w:"140px",
+    fn:(j)=>`<td style="color:#4B5563;font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${x(j.remarks)}">${x(j.remarks)||"—"}</td>`});
+
+  // ── Actions ──────────────────────────────────────────────────
+  cols.push({h:"Actions", g:"", w:"100px",
+    fn:(j)=>{
+      const qs=(j.interviewQuestions||"").split("\n").filter(Boolean);
+      const qBtn=qs.length?'<span style="font-size:11px;color:#C084FC;font-weight:600;background:#2D1B4E;padding:2px 8px;border-radius:20px;cursor:pointer;white-space:nowrap" onclick="openView(\"'+j.id+'\")">📋 '+qs.length+'</span>':'';
+      return '<td><div style="display:flex;align-items:center;gap:4px">'+qBtn+'<button onclick="openEdit(\"'+j.id+'\")" style="padding:4px 7px;border-radius:6px;border:1px solid #334155;background:#0F172A;color:#94A3B8;font-size:11px;cursor:pointer">✏️</button><button onclick="confirmDel(\"'+j.id+'\")" style="padding:4px 7px;border-radius:6px;border:1px solid #3F1515;background:#1C0A0A;color:#F87171;font-size:11px;cursor:pointer">🗑️</button></div></td>';
+    }});
+
   return cols;
 }
 
 function renderTable(f){
   const cols = getTableCols(filterSt);
 
-  // Render headers
-  document.getElementById("thead-row").innerHTML = cols.map(c=>
-    `<th style="width:${c.w||"auto"};${c.center?"text-align:center;":""}">${c.h}</th>`
-  ).join("");
+  // ── Group header row ─────────────────────────────────────────
+  // Merge consecutive cols with same group label
+  const groupCells = [];
+  let i = 0;
+  while(i < cols.length){
+    const g = cols[i].g || "";
+    let span = 1;
+    while(i + span < cols.length && cols[i+span].g === g && g !== "") span++;
+    groupCells.push({g, span});
+    i += span;
+  }
 
-  // Render rows
+  const groupColors = {
+    "Job Details":  {bg:"#1A2744",color:"#93C5FD"},
+    "Applied Via":  {bg:"#1A1A2E",color:"#C4B5FD"},
+    "HR Details":   {bg:"#052E16",color:"#4ADE80"},
+    "Activity":     {bg:"#2D1B00",color:"#FCD34D"},
+    "":             {bg:"#161F2E",color:"#475569"},
+  };
+
+  document.getElementById("thead-group-row").innerHTML = groupCells.map(({g,span})=>{
+    const clr = groupColors[g] || {bg:"#161F2E",color:"#475569"};
+    return `<th colspan="${span}" style="background:${clr.bg};color:${clr.color};font-size:10px;font-weight:800;text-align:center;text-transform:uppercase;letter-spacing:0.08em;padding:7px 8px;border-right:1px solid #334155;border-bottom:1px solid #334155">${g}</th>`;
+  }).join("");
+
+  // ── Sub-header row ───────────────────────────────────────────
+  document.getElementById("thead-row").innerHTML = cols.map(c=>{
+    const g = c.g || "";
+    const clr = groupColors[g] || {bg:"#161F2E",color:"#475569"};
+    return `<th style="width:${c.w||"auto"};background:#161F2E;color:#64748B;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:8px 10px;${c.center?"text-align:center;":""}border-right:1px solid #1E293B;border-bottom:2px solid #334155;position:sticky;top:0;z-index:1">${c.h}</th>`;
+  }).join("");
+
+  // ── Data rows ────────────────────────────────────────────────
   document.getElementById("tbody").innerHTML = f.map((j,i)=>{
     const bg=i%2?"#192130":"#1E293B";
     return `<tr style="background:${bg}" onmouseenter="this.style.background='#243044'" onmouseleave="this.style.background='${bg}'">
@@ -1841,16 +1826,105 @@ window.confirmDel=id=>{
 // EXPORT
 function doExcelExport(){
   const XLSX=window.XLSX;
-  const hdrs=["Sl. No","Company","Role","Job Description","Experience","Client","Salary","Location","Applied Via","Platform","How","HR Name","HR Phone","HR Email","Ref Name","Ref Phone","Ref Email","Ref LinkedIn","Career Portal Link","Applied HR Name","Applied HR Phone","Applied HR Email","Job Link","Resume Edited","Resume Link","Contacted On","Follow-up","Interview Date","Interview Time","Interview Mode","Status","Sub Status","Interviewer","Interviewer Role","Schedule Date","Schedule Time","Schedule Mode","Remarks","Feedback","Interview Questions"];
-  const rows=jobs.map((j,i)=>[i+1,j.company||"",j.role||"",j.jobDescription||"",j.experience||"",j.client||"",j.salaryOffering||"",j.location||"",j.appliedVia||"",j.socialPlatform||"",j.himselfHow||"",j.hrName||"",j.hrPhone||"",j.hrEmail||"",j.refName||"",j.refPhone||"",j.refEmail||"",j.refLinkedIn||"",j.careerPortalLink||"",j.appliedHrName||"",j.appliedHrPhone||"",j.appliedHrEmail||"",j.appliedViaLink||"",j.resumeEdited||"",j.resumeLink||"",j.mailContactedOn||"",j.followUpOn||"",j.interviewDate||"",j.interviewTime||"",j.interviewMode||"",j.status||"",j.subStatus||"",j.interviewerName||"",j.interviewerRole||"",j.scheduleDate||"",j.scheduleTime||"",j.scheduleMode||"",j.remarks||"",j.feedback||"",(j.interviewQuestions||"").replace(/\n/g," | ")]);
-  const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([hdrs,...rows]);
-  ws["!cols"]=[{wch:5},{wch:22},{wch:20},{wch:32},{wch:12},{wch:18},{wch:18},{wch:28},{wch:14},{wch:14},{wch:16},{wch:36},{wch:18},{wch:14},{wch:16},{wch:14},{wch:18},{wch:22},{wch:24},{wch:48}];
-  ws["!sheetViews"]=[{state:"frozen",ySplit:1,topLeftCell:"A2",activeCell:"A2",sqref:"A2"}];
-  XLSX.utils.book_append_sheet(wb,ws,"Job Applications");
-  const ws2=XLSX.utils.aoa_to_sheet([["Job Tracker — Summary",""],[""],[" Total Applications",jobs.length],...STATUSES.map(s=>[" "+s,jobs.filter(j=>j.status===s).length]),[""],[" Exported On",new Date().toLocaleString()]]);
+
+  // Row 1: Group headers, Row 2: Sub-headers, Row 3+: Data
+  const groupRow = [
+    "","Job Details","","","","",
+    "Client & Salary","",
+    "Applied Via","","",
+    "Referral Details","","",
+    "Applied Via — HR","","","",
+    "HR Details","","",
+    "Resume","",
+    "Activity","",
+    "Status & Notes","","","",
+    "Schedule","","","",
+    "Interviewer","",
+    ""
+  ];
+
+  const subRow = [
+    "Sl. No",
+    "Company","Role","Job Description","Experience","Location",
+    "Client","Salary",
+    "Source","Platform / How","Job Link",
+    "Ref Name","Ref Phone / Email","Ref LinkedIn",
+    "Applied HR Name","Applied HR Phone","Applied HR Email","Career Portal",
+    "HR Name","HR Phone","HR Email",
+    "Resume Edited","Resume Link",
+    "Contacted On","Follow-up On",
+    "Status","Sub Status","Remarks","Feedback",
+    "Schedule Date","Schedule Time","Schedule Mode","Meeting Link",
+    "Interviewer Name","Interviewer Role",
+    "Interview Questions"
+  ];
+
+  const rows = jobs.map((j,i)=>[
+    i+1,
+    j.company||"", j.role||"", j.jobDescription||"", j.experience||"", j.location||"",
+    j.client||"", j.salaryOffering||"",
+    j.appliedVia||"", (j.socialPlatform||j.himselfHow||""), j.appliedViaLink||"",
+    j.refName||"", (j.refPhone||j.refEmail||""), j.refLinkedIn||"",
+    j.appliedHrName||"", j.appliedHrPhone||"", j.appliedHrEmail||"", j.careerPortalLink||"",
+    j.hrName||"", j.hrPhone||"", j.hrEmail||"",
+    j.resumeEdited||"", j.resumeLink||"",
+    j.mailContactedOn||"", j.followUpOn||"",
+    j.status||"", j.subStatus||"", j.remarks||"", j.feedback||"",
+    j.scheduleDate||"", j.scheduleTime||"", j.scheduleMode||"", j.meetingLink||"",
+    j.interviewerName||"", j.interviewerRole||"",
+    (j.interviewQuestions||"").replace(/\n/g," | ")
+  ]);
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([groupRow, subRow, ...rows]);
+
+  ws["!cols"] = [
+    {wch:5},
+    {wch:22},{wch:20},{wch:32},{wch:12},{wch:14},
+    {wch:14},{wch:12},
+    {wch:14},{wch:18},{wch:32},
+    {wch:20},{wch:22},{wch:28},
+    {wch:20},{wch:18},{wch:28},{wch:32},
+    {wch:18},{wch:18},{wch:28},
+    {wch:14},{wch:32},
+    {wch:14},{wch:14},
+    {wch:18},{wch:18},{wch:24},{wch:36},
+    {wch:14},{wch:10},{wch:14},{wch:36},
+    {wch:22},{wch:18},
+    {wch:48}
+  ];
+
+  ws["!sheetViews"] = [{state:"frozen", xSplit:1, ySplit:2, topLeftCell:"B3", activeCell:"B3", sqref:"B3"}];
+
+  ws["!merges"] = [
+    {s:{r:0,c:1},  e:{r:0,c:5}},
+    {s:{r:0,c:6},  e:{r:0,c:7}},
+    {s:{r:0,c:8},  e:{r:0,c:10}},
+    {s:{r:0,c:11}, e:{r:0,c:13}},
+    {s:{r:0,c:14}, e:{r:0,c:17}},
+    {s:{r:0,c:18}, e:{r:0,c:20}},
+    {s:{r:0,c:21}, e:{r:0,c:22}},
+    {s:{r:0,c:23}, e:{r:0,c:24}},
+    {s:{r:0,c:25}, e:{r:0,c:28}},
+    {s:{r:0,c:29}, e:{r:0,c:32}},
+    {s:{r:0,c:33}, e:{r:0,c:34}},
+  ];
+
+  ws["!rows"] = [{hpt:22},{hpt:30}];
+
+  XLSX.utils.book_append_sheet(wb, ws, "Job Applications");
+
+  const ws2=XLSX.utils.aoa_to_sheet([
+    ["Job Tracker — Summary",""],["",""],
+    [" Total Applications",jobs.length],
+    ...STATUSES.map(s=>[" "+s,jobs.filter(j=>j.status===s).length]),
+    ["",""],
+    [" Exported On",new Date().toLocaleString()]
+  ]);
   ws2["!cols"]=[{wch:30},{wch:16}];
   XLSX.utils.book_append_sheet(wb,ws2,"Summary");
-  XLSX.writeFile(wb,`Job Tracker_${new Date().toISOString().split("T")[0]}.xlsx`);
+
+  XLSX.writeFile(wb,`Job_Tracker_${new Date().toISOString().split("T")[0]}.xlsx`);
   toast("📊 Exported to Excel!");
 }
 window.exportExcel=()=>{
