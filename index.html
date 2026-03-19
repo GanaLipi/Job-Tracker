@@ -2261,10 +2261,25 @@ window.openQsPopup=(id)=>{
   document.getElementById("qs-mode").value="";
   document.getElementById("qs-sub-st").value="";
 
-  // Pre-fill existing HR details if available
-  if(j.hrName) document.getElementById("qs-hrn").value=j.hrName;
-  if(j.hrPhone) document.getElementById("qs-hrp").value=j.hrPhone;
-  if(j.hrEmail) document.getElementById("qs-hrm").value=j.hrEmail;
+  // Pre-fill from existing stage blocks
+  const b = j.screeningBlock||j.interviewBlock||j.furtherProcessBlock||null;
+  if(j.underProcessBlock){
+    document.getElementById("qs-hrn").value=j.underProcessBlock.hrName||j.hrName||"";
+    document.getElementById("qs-hrp").value=j.underProcessBlock.hrPhone||j.hrPhone||"";
+    document.getElementById("qs-hrm").value=j.underProcessBlock.hrEmail||j.hrEmail||"";
+  } else {
+    if(j.hrName) document.getElementById("qs-hrn").value=j.hrName;
+    if(j.hrPhone) document.getElementById("qs-hrp").value=j.hrPhone;
+    if(j.hrEmail) document.getElementById("qs-hrm").value=j.hrEmail;
+  }
+  if(b){
+    document.getElementById("qs-date").value=b.scheduleDate||"";
+    document.getElementById("qs-time").value=b.scheduleTime||"";
+    document.getElementById("qs-mode").value=b.scheduleMode||"";
+    document.getElementById("qs-link").value=b.meetingLink||"";
+    document.getElementById("qs-intname").value=b.interviewerName||"";
+    document.getElementById("qs-introle").value=b.interviewerRole||"";
+  }
 
   // Restrict to valid next statuses only
   restrictStatusDropdown("qs-st", j.status);
@@ -2380,12 +2395,7 @@ window.saveQsStatus=async()=>{
     remarks:remarks||j.remarks,
   };
   updated = buildStageBlocks(updated, j);
-
-  // Clear schedule if moving away from scheduled stage
-  const schedStages=["Screening Scheduled","Interview Scheduled"];
-  if(!schedStages.includes(newSub)){
-    updated.scheduleDate=""; updated.scheduleTime=""; updated.scheduleMode=""; updated.meetingLink="";
-  }
+  // Note: schedule fields are stored in stage blocks — no need to clear top-level fields
 
   try{
     await updateJob(j.id, updated);
