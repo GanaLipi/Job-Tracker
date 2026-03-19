@@ -1389,21 +1389,14 @@ window.submitAttended=async()=>{
   const intName=document.getElementById("piv-intname").value.trim();
   const intRole=document.getElementById("piv-introle").value.trim();
   // Build history entry for completion
-  const histEntry={
-    status:j.status,
-    subStatus:j.subStatus==="Screening Scheduled"?"Screening Done":"Interviewed",
-    date:new Date().toISOString(),
-    interviewerName:intName,
-    interviewerRole:intRole,
-    note:"Marked attended via post-interview notification"
-  };
-  const updated={
+  const newSub=j.subStatus==="Screening Scheduled"?"Screening Done":"Interviewed";
+  let updated={
     ...j,
-    subStatus:j.subStatus==="Screening Scheduled"?"Screening Done":"Interviewed",
+    subStatus:newSub,
     interviewerName:intName,
     interviewerRole:intRole,
-    history:[...(j.history||[]),histEntry]
   };
+  updated = buildStageBlocks(updated, j);
   try{
     await updateJob(j.id,updated);
     closePostIv();
@@ -1419,26 +1412,14 @@ window.submitRescheduled=async()=>{
   const newLink=document.getElementById("piv-link").value.trim();
   const reason=document.getElementById("piv-reason").value.trim();
   if(!newDate||!newTime) return toast("Kindly enter new date and time.","error");
-  // Save old schedule to history
-  const histEntry={
-    status:j.status,
-    subStatus:j.subStatus,
-    date:new Date().toISOString(),
-    scheduleDate:j.scheduleDate,
-    scheduleTime:j.scheduleTime,
-    scheduleMode:j.scheduleMode,
-    meetingLink:j.meetingLink||"",
-    note:"Rescheduled"+(reason?" — "+reason:""),
-    rescheduled:true
-  };
-  const updated={
+  let updated={
     ...j,
     scheduleDate:newDate,
     scheduleTime:newTime,
     scheduleMode:newMode,
     meetingLink:newLink,
-    history:[...(j.history||[]),histEntry]
   };
+  updated = buildStageBlocks(updated, j);
   try{
     await updateJob(j.id,updated);
     // Reschedule notifications for new time
@@ -1499,9 +1480,35 @@ function fillForm(j){
     document.getElementById("sub-st-box").style.display="block";
     document.getElementById("sub-st-label").textContent=j.status==="Screening"?"Screening Stage":j.status==="Interview"?"Interview Stage":"Round";
   }
-  s("fsub",j.subStatus||"");s("fid",j.scheduleDate||"");s("fit",j.scheduleTime||"");s("fim",j.scheduleMode||"");
-  s("fintname",j.interviewerName||"");s("fintrole",j.interviewerRole||"");s("fmlink",j.meetingLink||"");
-  document.getElementById("meeting-link-box").style.display=(j.scheduleMode==="Video Call")?"block":"none";
+  // Read from stage blocks if available (sync back from Quick Status updates)
+  const block = j.screeningBlock||j.interviewBlock||j.furtherProcessBlock||null;
+  if(block && ["Screening","Interview","Further Process"].includes(j.status)){
+    s("fsub",    block.subStatus||j.subStatus||"");
+    s("fid",     block.scheduleDate||j.scheduleDate||"");
+    s("fit",     block.scheduleTime||j.scheduleTime||"");
+    s("fim",     block.scheduleMode||j.scheduleMode||"");
+    s("fmlink",  block.meetingLink||j.meetingLink||"");
+    s("fintname",block.interviewerName||j.interviewerName||"");
+    s("fintrole",block.interviewerRole||j.interviewerRole||"");
+  } else {
+    s("fsub",j.subStatus||"");s("fid",j.scheduleDate||"");s("fit",j.scheduleTime||"");s("fim",j.scheduleMode||"");
+    s("fintname",j.interviewerName||"");s("fintrole",j.interviewerRole||"");s("fmlink",j.meetingLink||"");
+  }
+  // Read HR from underProcessBlock if available
+  if(j.underProcessBlock){
+    s("fhrn",j.underProcessBlock.hrName||j.hrName||"");
+    s("fhrp",j.underProcessBlock.hrPhone||j.hrPhone||"");
+    s("fhrm",j.underProcessBlock.hrEmail||j.hrEmail||"");
+  }
+  // Read feedback from rejectedBlock if available
+  if(j.rejectedBlock){ s("ffb",j.rejectedBlock.feedback||j.feedback||""); }
+
+  document.getElementById("meeting-link-box").style.display=
+    (j.scheduleMode==="Video Call"||(block&&block.scheduleMode==="Video Call"))?"block":"none";
+
+  // Restrict status dropdown to valid next statuses
+  restrictStatusDropdown("fst", j.status);
+
   onStChange();onResChange();
 }
 function gf(){
@@ -1796,30 +1803,123 @@ function _lockHrDetails(){
   document.getElementById("hr-locked-hint").style.display = locked?"block":"none";
 }
 window.onResChange=()=>document.getElementById("res-box").style.display=document.getElementById("fres").value==="Yes"?"block":"none";
+// ── STAGE BLOCKS ──────────────────────────────────────────────────
+// Builds/updates stage blocks based on current status/subStatus
+// Preserves existing blocks from previous job state
+function buildStageBlocks(d, prevJob){
+  const now = new Date().toISOString();
+  // Preserve all existing blocks from prevJob
+  if(prevJob){
+    ["underProcessBlock","screeningBlock","interviewBlock",
+     "furtherProcessBlock","offeredBlock","rejectedBlock"].forEach(k=>{
+      if(prevJob[k] && !d[k]) d[k] = prevJob[k];
+    });
+  }
+
+  // Update/create block for current status
+  switch(d.status){
+    case "Under Process":
+      d.underProcessBlock = {
+        hrName:     d.hrName||"",
+        hrPhone:    d.hrPhone||"",
+        hrEmail:    d.hrEmail||"",
+        date:       (prevJob?.underProcessBlock?.date)||now,
+        updatedAt:  now,
+      };
+      break;
+    case "Screening":
+      d.screeningBlock = {
+        subStatus:       d.subStatus||"",
+        scheduleDate:    d.scheduleDate||"",
+        scheduleTime:    d.scheduleTime||"",
+        scheduleMode:    d.scheduleMode||"",
+        meetingLink:     d.meetingLink||"",
+        interviewerName: d.interviewerName||"",
+        interviewerRole: d.interviewerRole||"",
+        date:            (prevJob?.screeningBlock?.date)||now,
+        updatedAt:       now,
+      };
+      break;
+    case "Interview":
+      d.interviewBlock = {
+        subStatus:       d.subStatus||"",
+        scheduleDate:    d.scheduleDate||"",
+        scheduleTime:    d.scheduleTime||"",
+        scheduleMode:    d.scheduleMode||"",
+        meetingLink:     d.meetingLink||"",
+        interviewerName: d.interviewerName||"",
+        interviewerRole: d.interviewerRole||"",
+        date:            (prevJob?.interviewBlock?.date)||now,
+        updatedAt:       now,
+      };
+      break;
+    case "Further Process":
+      d.furtherProcessBlock = {
+        subStatus:       d.subStatus||"",
+        scheduleDate:    d.scheduleDate||"",
+        scheduleTime:    d.scheduleTime||"",
+        scheduleMode:    d.scheduleMode||"",
+        meetingLink:     d.meetingLink||"",
+        interviewerName: d.interviewerName||"",
+        interviewerRole: d.interviewerRole||"",
+        date:            (prevJob?.furtherProcessBlock?.date)||now,
+        updatedAt:       now,
+      };
+      break;
+    case "Offered":
+      d.offeredBlock = {
+        salaryOffered: d.salaryOffering||"",
+        date:          (prevJob?.offeredBlock?.date)||now,
+        updatedAt:     now,
+      };
+      break;
+    case "Rejected":
+      d.rejectedBlock = {
+        feedback:  d.feedback||"",
+        date:      (prevJob?.rejectedBlock?.date)||now,
+        updatedAt: now,
+      };
+      break;
+  }
+  return d;
+}
+
+// Valid next statuses per current status
+const VALID_NEXT = {
+  "Applied":        ["Under Process","Rejected"],
+  "Under Process":  ["Screening","Interview","Rejected"],
+  "Screening":      ["Interview","Rejected"],
+  "Interview":      ["Further Process","Offered","Rejected"],
+  "Further Process":["Offered","Rejected"],
+  "Offered":        [],
+  "Rejected":       [],
+};
+
+// Populate status dropdown to only show valid next options
+function restrictStatusDropdown(elId, currentStatus){
+  const sel = document.getElementById(elId);
+  if(!sel) return;
+  const valid = VALID_NEXT[currentStatus] || [];
+  Array.from(sel.options).forEach(o=>{
+    if(o.value === currentStatus){
+      o.disabled = false; // always keep current selectable
+    } else {
+      // Only enable valid next statuses
+      o.disabled = !valid.includes(o.value);
+    }
+  });
+  sel.value = currentStatus;
+}
+
 window.saveJob=async()=>{
   const d=gf();
   if(!d.company||!d.role) return toast("Company & Role required!","error");
 
-  // Build history entry for this status change
+  // Get previous job for block preservation
   const prevJob = editId ? jobs.find(j=>j.id===editId) : null;
-  const prevStatus = prevJob?.status || "";
-  if(!editId || prevStatus !== d.status || (prevJob?.subStatus||"") !== d.subStatus){
-    const histEntry = {
-      status: d.status,
-      subStatus: d.subStatus||"",
-      date: new Date().toISOString(),
-      scheduleDate: d.scheduleDate||"",
-      scheduleTime: d.scheduleTime||"",
-      scheduleMode: d.scheduleMode||"",
-      meetingLink: d.meetingLink||"",
-      interviewerName: d.interviewerName||"",
-      interviewerRole: d.interviewerRole||"",
-    };
-    const prevHistory = prevJob?.history || [];
-    d.history = [...prevHistory, histEntry];
-  } else {
-    d.history = prevJob?.history || [];
-  }
+
+  // Build stage blocks
+  d = buildStageBlocks(d, prevJob);
 
   // Validate Social Media job link
   const linkBox=document.getElementById("fav-link-box");
@@ -1858,30 +1958,65 @@ window.saveJob=async()=>{
 };
 
 // VIEW
-function renderHistory(history){
-  if(!history||!history.length) return "";
+function renderStageBlocks(j){
   const stIcon={"Applied":"📝","Under Process":"⚙️","Screening":"🔍","Interview":"🎯","Further Process":"🔄","Offered":"🎉","Rejected":"❌"};
+  const blocks = [];
+
+  const fmtDate=d=>d?new Date(d).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}):"";
+  const fmtUpd=d=>d?`<span style="font-size:10px;color:#334155;margin-left:6px">${fmtDate(d)}</span>`:"";
+
+  if(j.underProcessBlock){
+    const b=j.underProcessBlock, st=ST["Under Process"];
+    blocks.push(`
+      <div style="position:relative;margin-bottom:14px;padding-left:14px">
+        <div style="position:absolute;left:-5px;top:4px;width:10px;height:10px;border-radius:50%;background:${st.dot};border:2px solid #0F172A"></div>
+        <div style="font-size:12px;font-weight:700;color:${st.color}">⚙️ Under Process ${fmtUpd(b.date)}</div>
+        ${b.hrName?`<div style="font-size:11px;color:#4ADE80;margin-top:4px">👤 ${x(b.hrName)}${b.hrPhone?" · "+x(b.hrPhone):""}${b.hrEmail?" · "+x(b.hrEmail):""}</div>`:""}
+      </div>`);
+  }
+
+  const schedBlock=(b,status,icon,color)=>{
+    const st=ST[status]||ST["Applied"];
+    return `
+      <div style="position:relative;margin-bottom:14px;padding-left:14px">
+        <div style="position:absolute;left:-5px;top:4px;width:10px;height:10px;border-radius:50%;background:${st.dot};border:2px solid #0F172A"></div>
+        <div style="font-size:12px;font-weight:700;color:${st.color}">${icon} ${status}${b.subStatus?" · "+b.subStatus:""} ${fmtUpd(b.date)}</div>
+        ${b.scheduleDate?`<div style="font-size:11px;color:#60A5FA;margin-top:3px">📅 ${b.scheduleDate}${b.scheduleTime?" · "+fmt12(b.scheduleTime):""}${b.scheduleMode?" · "+b.scheduleMode:""}</div>`:""}
+        ${b.meetingLink?`<div style="font-size:11px;color:#38BDF8;margin-top:2px">🔗 <a href="${b.meetingLink}" target="_blank" style="color:#38BDF8">${b.meetingLink.length>45?b.meetingLink.slice(0,45)+"...":b.meetingLink}</a></div>`:""}
+        ${b.interviewerName?`<div style="font-size:11px;color:#4ADE80;margin-top:3px">👤 ${x(b.interviewerName)}${b.interviewerRole?" ("+x(b.interviewerRole)+")":""}</div>`:""}
+      </div>`;
+  };
+
+  if(j.screeningBlock)     blocks.push(schedBlock(j.screeningBlock,"Screening","🔍","#A78BFA"));
+  if(j.interviewBlock)     blocks.push(schedBlock(j.interviewBlock,"Interview","🎯","#60A5FA"));
+  if(j.furtherProcessBlock)blocks.push(schedBlock(j.furtherProcessBlock,"Further Process","🔄","#C084FC"));
+
+  if(j.offeredBlock){
+    const st=ST["Offered"];
+    blocks.push(`
+      <div style="position:relative;margin-bottom:14px;padding-left:14px">
+        <div style="position:absolute;left:-5px;top:4px;width:10px;height:10px;border-radius:50%;background:${st.dot};border:2px solid #0F172A"></div>
+        <div style="font-size:12px;font-weight:700;color:${st.color}">🎉 Offered ${fmtUpd(j.offeredBlock.date)}</div>
+        ${j.offeredBlock.salaryOffered?`<div style="font-size:11px;color:#34D399;margin-top:3px">💰 ${x(j.offeredBlock.salaryOffered)}</div>`:""}
+      </div>`);
+  }
+
+  if(j.rejectedBlock){
+    const st=ST["Rejected"];
+    blocks.push(`
+      <div style="position:relative;margin-bottom:14px;padding-left:14px">
+        <div style="position:absolute;left:-5px;top:4px;width:10px;height:10px;border-radius:50%;background:${st.dot};border:2px solid #0F172A"></div>
+        <div style="font-size:12px;font-weight:700;color:${st.color}">❌ Rejected ${fmtUpd(j.rejectedBlock.date)}</div>
+        ${j.rejectedBlock.feedback?`<div style="font-size:11px;color:#FCA5A5;margin-top:3px;font-style:italic">${x(j.rejectedBlock.feedback)}</div>`:""}
+      </div>`);
+  }
+
+  if(!blocks.length) return "";
   return `<div style="margin-top:14px">
-    <div style="font-size:10px;font-weight:700;color:#38BDF8;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px">📋 Status History</div>
+    <div style="font-size:10px;font-weight:700;color:#38BDF8;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px">📋 Application Journey</div>
     <div style="position:relative;padding-left:20px">
       <div style="position:absolute;left:7px;top:0;bottom:0;width:2px;background:#1E293B"></div>
-      ${history.map((h,i)=>{
-        const st=ST[h.status]||ST["Applied"];
-        const dt=h.date?new Date(h.date).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}):"";
-        const tm=h.date?new Date(h.date).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}):"";
-        return `<div style="position:relative;margin-bottom:12px;padding-left:14px">
-          <div style="position:absolute;left:-5px;top:4px;width:10px;height:10px;border-radius:50%;background:${st.dot};border:2px solid #0F172A"></div>
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span style="font-size:12px;font-weight:700;color:${st.color}">${stIcon[h.status]||"•"} ${h.status}${h.subStatus?" · "+h.subStatus:""}</span>
-            <span style="font-size:10px;color:#475569">${dt} ${tm}</span>
-          </div>
-          ${h.rescheduled?`<div style="font-size:10px;font-weight:700;color:#F59E0B;margin-top:3px">🔄 Rescheduled</div>`:""}
-          ${h.scheduleDate?`<div style="font-size:11px;color:#60A5FA;margin-top:3px">📅 ${h.scheduleDate}${h.scheduleTime?" · "+fmt12(h.scheduleTime):""}${h.scheduleMode?" · "+h.scheduleMode:""}</div>`:""}
-          ${h.meetingLink?`<div style="font-size:11px;color:#38BDF8;margin-top:3px">🔗 <a href="${h.meetingLink}" target="_blank" style="color:#38BDF8">${h.meetingLink.length>40?h.meetingLink.slice(0,40)+"...":h.meetingLink}</a></div>`:""}
-          ${h.interviewerName?`<div style="font-size:11px;color:#4ADE80;margin-top:3px">👤 ${h.interviewerName}${h.interviewerRole?" ("+h.interviewerRole+")":""}</div>`:""}
-          ${h.note?`<div style="font-size:11px;color:#64748B;margin-top:2px;font-style:italic">${h.note}</div>`:""}
-        </div>`;
-      }).join("")}
+      ${blocks.join("")}
     </div>
   </div>`;
 }
@@ -1926,7 +2061,7 @@ window.openView=id=>{
         </div>
 
       </div>
-      ${renderHistory(j.history||[])}
+      ${renderStageBlocks(j)}
       <div class="two">
         <div class="ibox"><div class="iblbl">📋 Job Description</div><div class="ibtxt">${x(j.jobDescription)||'<span style="color:#334155">Not provided</span>'}</div></div>
         <div class="ibox"><div class="iblbl">📝 Remarks</div><div class="ibtxt">${x(j.remarks)||'<span style="color:#334155">No remarks</span>'}</div>
@@ -2131,11 +2266,8 @@ window.openQsPopup=(id)=>{
   if(j.hrPhone) document.getElementById("qs-hrp").value=j.hrPhone;
   if(j.hrEmail) document.getElementById("qs-hrm").value=j.hrEmail;
 
-  // Disable Applied option if job has progressed
-  const pastStatuses=["Under Process","Screening","Interview","Further Process","Offered","Rejected"];
-  Array.from(stSel.options).forEach(o=>{
-    o.disabled = pastStatuses.includes(j.status) && o.value==="Applied";
-  });
+  // Restrict to valid next statuses only
+  restrictStatusDropdown("qs-st", j.status);
 
   onQsStChange();
   document.getElementById("qs-popup").style.display="flex";
@@ -2231,30 +2363,23 @@ window.saveQsStatus=async()=>{
     if(!date||!time) return toast("Kindly enter Schedule Date and Time.","error");
   }
 
-  // Build history entry
-  const histEntry={
-    status:newSt, subStatus:newSub, date:new Date().toISOString(),
-    scheduleDate:date, scheduleTime:time, scheduleMode:mode, meetingLink:link,
-    interviewerName:intName, interviewerRole:intRole,
-  };
-
-  const updated = {
+  let updated = {
     ...j,
     status:newSt,
     subStatus:newSub,
-    scheduleDate:date||j.scheduleDate,
-    scheduleTime:time||j.scheduleTime,
-    scheduleMode:mode||j.scheduleMode,
-    meetingLink:link||j.meetingLink,
-    interviewerName:intName||j.interviewerName,
-    interviewerRole:intRole||j.interviewerRole,
+    scheduleDate:date||"",
+    scheduleTime:time||"",
+    scheduleMode:mode||"",
+    meetingLink:link||"",
+    interviewerName:intName||"",
+    interviewerRole:intRole||"",
     hrName:hrn||j.hrName,
     hrPhone:hrp||j.hrPhone,
     hrEmail:hrm||j.hrEmail,
     feedback:feedback||j.feedback,
     remarks:remarks||j.remarks,
-    history:[...(j.history||[]),histEntry],
   };
+  updated = buildStageBlocks(updated, j);
 
   // Clear schedule if moving away from scheduled stage
   const schedStages=["Screening Scheduled","Interview Scheduled"];
