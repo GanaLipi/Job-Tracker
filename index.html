@@ -1346,7 +1346,8 @@ function fillForm(j){
   s("favh",j.himselfHow);s("frefn",j.refName);s("frefp",j.refPhone);s("frefm",j.refEmail);s("frefl",j.refLinkedIn);
   s("fcpl",j.careerPortalLink);s("favhrn",j.appliedHrName);s("favhrp",j.appliedHrPhone);s("favhrm",j.appliedHrEmail);
   s("fhrn",j.hrName);s("fhrp",j.hrPhone);s("fhrm",j.hrEmail);
-  onAppliedViaChange();onHimselfChange();onSocialPlatformChange();onSubStChange();
+  // Directly show/hide Applied Via sections (bypass lock check during fill)
+  _showAppliedViaSections();
   // Lock Applied Via if job is past Applied status
   const pastApplied=["Under Process","Screening","Interview","Further Process","Offered","Rejected"];
   _highestStatus = j.status || "Applied";
@@ -1419,6 +1420,22 @@ window.onSocialPlatformChange=()=>{
   const ob=document.getElementById("fav-social-other-box");
   if(ob) ob.style.display = v==="Others"?"block":"none";
 };
+
+// Show Applied Via sections directly (used in fillForm to bypass lock)
+function _showAppliedViaSections(){
+  const v=document.getElementById("fav").value;
+  const how=document.getElementById("favh").value;
+  const platform=document.getElementById("favo").value;
+  document.getElementById("fav-others-box").style.display  = v==="Social Media"?"block":"none";
+  document.getElementById("fav-himself-box").style.display = v==="Self"?"block":"none";
+  document.getElementById("fav-link-box").style.display    = v==="Social Media"?"block":"none";
+  document.getElementById("fav-social-hint").style.display = v==="Social Media"?"block":"none";
+  document.getElementById("fav-ref-box").style.display     = (v==="Self"&&how==="Referral")?"block":"none";
+  document.getElementById("fav-cp-box").style.display      = (v==="Self"&&how==="Career Portal")?"block":"none";
+  document.getElementById("fav-hr-box").style.display      = (v==="Self"&&how==="HR")?"block":"none";
+  document.getElementById("fav-social-other-box").style.display = (v==="Social Media"&&platform==="Others")?"block":"none";
+  updateHrVisibility();
+}
 
 // Show meeting link when Video Call selected
 window.onModeChange=()=>{
