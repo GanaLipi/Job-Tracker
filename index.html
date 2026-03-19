@@ -1480,20 +1480,33 @@ function fillForm(j){
     document.getElementById("sub-st-box").style.display="block";
     document.getElementById("sub-st-label").textContent=j.status==="Screening"?"Screening Stage":j.status==="Interview"?"Interview Stage":"Round";
   }
-  // Read from stage blocks if available (sync back from Quick Status updates)
+  // Restrict status dropdown to valid next statuses
+  restrictStatusDropdown("fst", j.status);
+
+  // Call onStChange FIRST to populate sub-status options
+  onStChange();onResChange();
+
+  // NOW restore block values AFTER onStChange (which resets sub-status dropdown)
   const block = j.screeningBlock||j.interviewBlock||j.furtherProcessBlock||null;
-  if(block && ["Screening","Interview","Further Process"].includes(j.status)){
-    s("fsub",    block.subStatus||j.subStatus||"");
-    s("fid",     block.scheduleDate||j.scheduleDate||"");
-    s("fit",     block.scheduleTime||j.scheduleTime||"");
-    s("fim",     block.scheduleMode||j.scheduleMode||"");
-    s("fmlink",  block.meetingLink||j.meetingLink||"");
-    s("fintname",block.interviewerName||j.interviewerName||"");
-    s("fintrole",block.interviewerRole||j.interviewerRole||"");
-  } else {
-    s("fsub",j.subStatus||"");s("fid",j.scheduleDate||"");s("fit",j.scheduleTime||"");s("fim",j.scheduleMode||"");
-    s("fintname",j.interviewerName||"");s("fintrole",j.interviewerRole||"");s("fmlink",j.meetingLink||"");
-  }
+  const blockSub = block?.subStatus||j.subStatus||"";
+  const blockDate = block?.scheduleDate||j.scheduleDate||"";
+  const blockTime = block?.scheduleTime||j.scheduleTime||"";
+  const blockMode = block?.scheduleMode||j.scheduleMode||"";
+  const blockLink = block?.meetingLink||j.meetingLink||"";
+  const blockIntName = block?.interviewerName||j.interviewerName||"";
+  const blockIntRole = block?.interviewerRole||j.interviewerRole||"";
+
+  s("fsub", blockSub);
+  s("fid",  blockDate);
+  s("fit",  blockTime);
+  s("fim",  blockMode);
+  s("fmlink",   blockLink);
+  s("fintname", blockIntName);
+  s("fintrole", blockIntRole);
+
+  // Trigger sub-status change to show schedule/interviewer boxes
+  onSubStChange();
+
   // Read HR from underProcessBlock if available
   if(j.underProcessBlock){
     s("fhrn",j.underProcessBlock.hrName||j.hrName||"");
@@ -1503,13 +1516,8 @@ function fillForm(j){
   // Read feedback from rejectedBlock if available
   if(j.rejectedBlock){ s("ffb",j.rejectedBlock.feedback||j.feedback||""); }
 
-  document.getElementById("meeting-link-box").style.display=
-    (j.scheduleMode==="Video Call"||(block&&block.scheduleMode==="Video Call"))?"block":"none";
-
-  // Restrict status dropdown to valid next statuses
-  restrictStatusDropdown("fst", j.status);
-
-  onStChange();onResChange();
+  // Show meeting link if Video Call
+  document.getElementById("meeting-link-box").style.display=blockMode==="Video Call"?"block":"none";
 }
 function gf(){
   const g=id=>(document.getElementById(id)||{}).value||"";
