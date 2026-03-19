@@ -1834,22 +1834,34 @@ function buildStageBlocks(d, prevJob){
                    "furtherProcessBlocks","offeredBlocks","rejectedBlocks"];
   arrKeys.forEach(k=>{ d[k] = prevJob?.[k] ? [...prevJob[k]] : []; });
 
-  // Build new entry for current status+subStatus
-  const newEntry = {
-    subStatus:       d.subStatus||"",
-    scheduleDate:    d.scheduleDate||"",
-    scheduleTime:    d.scheduleTime||"",
-    scheduleMode:    d.scheduleMode||"",
-    meetingLink:     d.meetingLink||"",
-    interviewerName: d.interviewerName||"",
-    interviewerRole: d.interviewerRole||"",
-    hrName:          d.hrName||"",
-    hrPhone:         d.hrPhone||"",
-    hrEmail:         d.hrEmail||"",
-    feedback:        d.feedback||"",
-    salaryOffered:   d.salaryOffering||"",
-    date:            now,
-  };
+  // Build status-specific entry — only include relevant fields per status
+  let newEntry = { subStatus: d.subStatus||"", date: now };
+  switch(d.status){
+    case "Under Process":
+      newEntry = { ...newEntry, hrName:d.hrName||"", hrPhone:d.hrPhone||"", hrEmail:d.hrEmail||"" };
+      break;
+    case "Screening":
+    case "Interview":
+      newEntry = { ...newEntry,
+        scheduleDate:d.scheduleDate||"", scheduleTime:d.scheduleTime||"",
+        scheduleMode:d.scheduleMode||"", meetingLink:d.meetingLink||"",
+        interviewerName:d.interviewerName||"", interviewerRole:d.interviewerRole||""
+      };
+      break;
+    case "Further Process":
+      newEntry = { ...newEntry,
+        scheduleDate:d.scheduleDate||"", scheduleTime:d.scheduleTime||"",
+        scheduleMode:d.scheduleMode||"", meetingLink:d.meetingLink||"",
+        interviewerName:d.interviewerName||"", interviewerRole:d.interviewerRole||""
+      };
+      break;
+    case "Offered":
+      newEntry = { ...newEntry, salaryOffered:d.salaryOffering||"" };
+      break;
+    case "Rejected":
+      newEntry = { ...newEntry, feedback:d.feedback||"" };
+      break;
+  }
 
   // Append to the right array — only if subStatus changed or new entry
   const prevBlocks = prevJob ? (prevJob[statusToKey(d.status)]||[]) : [];
@@ -2020,8 +2032,15 @@ function renderStageBlocks(j){
 
 // Render saved blocks inside the FORM as visual cards (like schedule/interviewer boxes)
 function renderFormBlocks(j){
-  const key = statusToKey(j.status);
-  const blocks = j[key]||[];
+  // Show all block arrays in order (all stages recorded so far)
+  const blocks = [
+    ...(j.underProcessBlocks||[]).map(b=>({...b,_status:"Under Process"})),
+    ...(j.screeningBlocks||[]).map(b=>({...b,_status:"Screening"})),
+    ...(j.interviewBlocks||[]).map(b=>({...b,_status:"Interview"})),
+    ...(j.furtherProcessBlocks||[]).map(b=>({...b,_status:"Further Process"})),
+    ...(j.offeredBlocks||[]).map(b=>({...b,_status:"Offered"})),
+    ...(j.rejectedBlocks||[]).map(b=>({...b,_status:"Rejected"})),
+  ];
   const container = document.getElementById("form-blocks-container");
   if(!container) return;
   if(!blocks.length){ container.innerHTML=""; return; }
