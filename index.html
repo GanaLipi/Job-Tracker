@@ -1530,6 +1530,15 @@ function fillForm(j){
 
   // Render existing blocks in form
   renderFormBlocks(j);
+
+  // If job already has blocks for current status, clear active inputs
+  // so user sees read-only blocks + fresh inputs for next entry
+  const existingBlocks = j[statusToKey(j.status)]||[];
+  if(existingBlocks.length > 0){
+    _resetActiveInputs();
+    // Restore status dropdown properly after reset
+    restrictStatusDropdown("fst", j.status);
+  }
 }
 function gf(){
   const g=id=>(document.getElementById(id)||{}).value||"";
@@ -1823,6 +1832,37 @@ function _lockHrDetails(){
   document.getElementById("hr-locked-hint").style.display = locked?"block":"none";
 }
 window.onResChange=()=>document.getElementById("res-box").style.display=document.getElementById("fres").value==="Yes"?"block":"none";
+// Reset active input fields after Save (inputs clear, read-only blocks show)
+function _resetActiveInputs(){
+  // Hide and clear sub-status box
+  const subBox = document.getElementById("sub-st-box");
+  const subSel = document.getElementById("fsub");
+  if(subBox) subBox.style.display="none";
+  if(subSel) subSel.value="";
+
+  // Hide and clear schedule box
+  ["fid","fit","fmlink"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  const fim=document.getElementById("fim"); if(fim) fim.value="";
+  document.getElementById("schedule-box").style.display="none";
+  document.getElementById("meeting-link-box").style.display="none";
+
+  // Hide and clear interviewer box
+  ["fintname","fintrole"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  document.getElementById("interviewer-box").style.display="none";
+
+  // Hide and clear HR details box (it's now saved as a block)
+  ["fhrn","fhrp","fhrm"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  document.getElementById("hr-details-box").style.display="none";
+
+  // Hide and clear feedback box
+  const ffb=document.getElementById("ffb"); if(ffb) ffb.value="";
+  document.getElementById("feedback-box").style.display="none";
+
+  // Update status dropdown — show current status + valid next options
+  const currentSt = document.getElementById("fst").value;
+  restrictStatusDropdown("fst", currentSt);
+}
+
 // ── STAGE BLOCKS ──────────────────────────────────────────────────
 // Builds/updates stage blocks based on current status/subStatus
 // Preserves existing blocks from previous job state
@@ -1983,7 +2023,9 @@ window.saveJob=async(andClose=false)=>{
     toast(editId?"✅ Updated!":"🎉 Application added!");
     if(andClose){ closeForm(); }
     else {
-      // Re-fetch latest job from jobs array after update (Firebase listener refreshes it)
+      // Reset active input fields — saved data will show as read-only blocks
+      _resetActiveInputs();
+      // Re-fetch latest job from jobs array after update
       setTimeout(()=>{
         const updated = jobs.find(j=>j.id===editId)||d;
         renderFormBlocks(updated);
