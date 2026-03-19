@@ -1965,7 +1965,19 @@ window.saveJob=async(andClose=false)=>{
     if(!d.hrPhone.trim() && !d.hrEmail.trim()) return toast("Kindly enter at least one contact for HR — Phone or Email — in HR Details.","error");
   }
 
-  try{editId?await updateJob(editId,d):await addJob(d);if(andClose)closeForm();else renderFormBlocks({...d,id:editId||""});toast(editId?"✅ Updated!":"🎉 Application added!");}catch(e){toast("Error: "+e.message,"error");}
+  try{
+    if(editId){ await updateJob(editId,d); }
+    else { await addJob(d); }
+    toast(editId?"✅ Updated!":"🎉 Application added!");
+    if(andClose){ closeForm(); }
+    else {
+      // Re-fetch latest job from jobs array after update (Firebase listener refreshes it)
+      setTimeout(()=>{
+        const updated = jobs.find(j=>j.id===editId)||d;
+        renderFormBlocks(updated);
+      }, 500);
+    }
+  }catch(e){toast("Error: "+e.message,"error");}
 };
 
 // VIEW
@@ -2006,37 +2018,77 @@ function renderStageBlocks(j){
   </div>`;
 }
 
-// Render saved blocks inside the FORM (shows all past entries for current status)
+// Render saved blocks inside the FORM as visual cards (like schedule/interviewer boxes)
 function renderFormBlocks(j){
   const key = statusToKey(j.status);
   const blocks = j[key]||[];
   const container = document.getElementById("form-blocks-container");
   if(!container) return;
   if(!blocks.length){ container.innerHTML=""; return; }
-  const stConfig = {
-    "Under Process":  {icon:"⚙️",color:"#FED7AA"},
-    "Screening":      {icon:"🔍",color:"#C4B5FD"},
-    "Interview":      {icon:"🎯",color:"#BFDBFE"},
-    "Further Process":{icon:"🔄",color:"#E9D5FF"},
-    "Offered":        {icon:"🎉",color:"#A7F3D0"},
-    "Rejected":       {icon:"❌",color:"#FECACA"},
-  };
-  const cfg = stConfig[j.status]||{icon:"•",color:"#94A3B8"};
-  const fmtDate=d=>d?new Date(d).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}):"";
-  container.innerHTML = `
-    <div style="margin-bottom:12px">
-      <div style="font-size:10px;font-weight:700;color:#38BDF8;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">📋 Saved Entries</div>
-      ${blocks.map((b,i)=>`
-        <div style="background:#0F172A;border:1px solid #1E293B;border-radius:10px;padding:10px 12px;margin-bottom:8px">
-          <div style="font-size:11px;font-weight:700;color:${cfg.color};margin-bottom:4px">${cfg.icon} Entry ${i+1} · ${fmtDate(b.date)}</div>
-          ${b.subStatus?`<div style="font-size:11px;color:#94A3B8">Stage: ${x(b.subStatus)}</div>`:""}
-          ${b.hrName?`<div style="font-size:11px;color:#4ADE80">👤 ${x(b.hrName)}${b.hrPhone?" · "+x(b.hrPhone):""}${b.hrEmail?" · "+x(b.hrEmail):""}</div>`:""}
-          ${b.scheduleDate?`<div style="font-size:11px;color:#60A5FA">📅 ${b.scheduleDate}${b.scheduleTime?" · "+fmt12(b.scheduleTime):""}${b.scheduleMode?" · "+b.scheduleMode:""}</div>`:""}
-          ${b.meetingLink?`<div style="font-size:11px;color:#38BDF8">🔗 ${b.meetingLink.length>40?b.meetingLink.slice(0,40)+"...":b.meetingLink}</div>`:""}
-          ${b.interviewerName?`<div style="font-size:11px;color:#4ADE80">👤 ${x(b.interviewerName)}${b.interviewerRole?" ("+x(b.interviewerRole)+")":""}</div>`:""}
-          ${b.feedback?`<div style="font-size:11px;color:#FCA5A5;font-style:italic">${x(b.feedback)}</div>`:""}
-        </div>`).join("")}
-    </div>`;
+
+  container.innerHTML = blocks.map(b=>{
+    // Determine block type from subStatus
+    const isScheduled = ["Screening Scheduled","Interview Scheduled"].includes(b.subStatus);
+    const isDone      = ["Screening Done","Interviewed"].includes(b.subStatus);
+    const isFP        = ["Technical Round 1","Technical Round 2","Manager Round","HR Round"].includes(b.subStatus);
+    const isHR        = !b.subStatus && b.hrName;
+    const isFeedback  = b.feedback;
+
+    let blockHtml = "";
+
+    // HR Details block (Under Process)
+    if(isHR){
+      blockHtml = `
+        <div class="sbox" style="border-color:#4ADE8033;background:#052E1699;margin-bottom:10px">
+          <div class="slbl" style="color:#4ADE80">👤 HR Details</div>
+          <div class="g3">
+            <div class="fld"><label>HR Name</label><input value="${x(b.hrName)}" readonly style="opacity:0.7;cursor:default"/></div>
+            <div class="fld"><label>HR Number</label><input value="${x(b.hrPhone)}" readonly style="opacity:0.7;cursor:default"/></div>
+            <div class="fld"><label>HR Email</label><input value="${x(b.hrEmail)}" readonly style="opacity:0.7;cursor:default"/></div>
+          </div>
+        </div>`;
+    }
+
+    // Schedule block (Scheduled stages)
+    if(isScheduled){
+      const lbl = b.subStatus==="Screening Scheduled"?"🗓️ Screening Schedule":"🗓️ Interview Schedule";
+      blockHtml = `
+        <div class="sbox" style="border-color:#60A5FA33;background:#0C1A3F99;margin-bottom:10px">
+          <div class="slbl" style="color:#60A5FA">${lbl}</div>
+          <div class="g3">
+            <div class="fld"><label>Date</label><input value="${b.scheduleDate||""}" readonly style="opacity:0.7;cursor:default"/></div>
+            <div class="fld"><label>Time</label><input value="${b.scheduleTime?fmt12(b.scheduleTime):""}" readonly style="opacity:0.7;cursor:default"/></div>
+            <div class="fld"><label>Mode</label><input value="${x(b.scheduleMode)}" readonly style="opacity:0.7;cursor:default"/></div>
+          </div>
+          ${b.meetingLink?`<div class="fld" style="margin-top:8px"><label>Meeting Link</label><input value="${x(b.meetingLink)}" readonly style="opacity:0.7;cursor:default"/></div>`:""}
+        </div>`;
+    }
+
+    // Interviewer block (Done stages)
+    if(isDone||isFP){
+      const lbl = b.subStatus==="Screening Done"?"👤 Screened By":"👤 Interviewer Details";
+      const title = b.subStatus||"";
+      blockHtml = `
+        <div class="sbox" style="border-color:#4ADE8033;background:#052E1699;margin-bottom:10px">
+          <div class="slbl" style="color:#4ADE80">${lbl}${title?` <span style="font-weight:400;color:#64748B;font-size:10px">· ${title}</span>`:""}</div>
+          <div class="g2">
+            <div class="fld"><label>Interviewer Name</label><input value="${x(b.interviewerName)}" readonly style="opacity:0.7;cursor:default"/></div>
+            <div class="fld"><label>Interviewer Role</label><input value="${x(b.interviewerRole)}" readonly style="opacity:0.7;cursor:default"/></div>
+          </div>
+        </div>`;
+    }
+
+    // Feedback block (Rejected)
+    if(isFeedback){
+      blockHtml = `
+        <div class="sbox" style="border-color:#F8717133;background:#450A0A99;margin-bottom:10px">
+          <div class="slbl" style="color:#F87171">💬 Rejection Feedback</div>
+          <div class="fld"><textarea rows="2" readonly style="opacity:0.7;cursor:default;resize:none">${x(b.feedback)}</textarea></div>
+        </div>`;
+    }
+
+    return blockHtml;
+  }).join("");
 }
 
 window.openView=id=>{
