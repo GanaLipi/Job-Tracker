@@ -2003,6 +2003,7 @@ window.saveJob=async(andClose=false)=>{
 
   // Build stage blocks
   d = buildStageBlocks(d, prevJob);
+  console.log("SAVE DEBUG - status:", d.status, "hrName:", d.hrName, "underProcessBlocks:", JSON.stringify(d.underProcessBlocks));
 
   // Validate Social Media job link
   const linkBox=document.getElementById("fav-link-box");
