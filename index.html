@@ -275,6 +275,98 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
   </div>
 </div>
 
+<!-- QUICK STATUS UPDATE POPUP -->
+<div id="qs-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9995;align-items:flex-end;justify-content:center;padding:16px;backdrop-filter:blur(6px)" onclick="if(event.target===this)closeQsPopup()">
+  <div style="background:#1E293B;border:1px solid #334155;border-radius:20px 20px 20px 20px;width:min(560px,98vw);max-height:85vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,0.6)">
+    <div style="background:linear-gradient(135deg,#0C1628,#1A2744);padding:16px 20px;border-bottom:1px solid #334155;border-radius:20px 20px 0 0;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:15px;font-weight:800;color:#F1F5F9" id="qs-title">⚡ Quick Status Update</div>
+        <div style="font-size:11px;color:#475569;margin-top:2px" id="qs-sub"></div>
+      </div>
+      <button onclick="closeQsPopup()" style="background:none;border:none;color:#475569;font-size:18px;cursor:pointer;padding:4px">✕</button>
+    </div>
+    <div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+
+      <!-- Status -->
+      <div class="fld">
+        <label>Status</label>
+        <select id="qs-st" onchange="onQsStChange()">
+          <option>Applied</option>
+          <option>Under Process</option>
+          <option>Screening</option>
+          <option>Interview</option>
+          <option>Further Process</option>
+          <option>Offered</option>
+          <option>Rejected</option>
+        </select>
+      </div>
+
+      <!-- Sub Status -->
+      <div id="qs-sub-box" style="display:none">
+        <div class="fld">
+          <label id="qs-sub-lbl">Sub Status</label>
+          <select id="qs-sub-st" onchange="onQsSubStChange()">
+            <option value="">— Select —</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- HR Details (if not yet filled) -->
+      <div id="qs-hr-box" style="display:none">
+        <div style="font-size:10px;font-weight:700;color:#4ADE80;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px">👤 HR Details</div>
+        <div class="g3">
+          <div class="fld"><label>HR Name <span style="color:#F87171">*</span></label><input id="qs-hrn" placeholder="HR Full Name"/></div>
+          <div class="fld"><label>HR Number</label><input id="qs-hrp" placeholder="+91 XXXXX XXXXX"/></div>
+          <div class="fld"><label>HR Email</label><input id="qs-hrm" type="email" placeholder="hr@company.com"/></div>
+        </div>
+        <div style="font-size:11px;color:#64748B;margin-top:6px">* HR Name is required. Provide at least Phone or Email.</div>
+      </div>
+
+      <!-- Schedule -->
+      <div id="qs-schedule-box" style="display:none">
+        <div style="font-size:10px;font-weight:700;color:#60A5FA;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px" id="qs-sched-lbl">🗓️ Schedule</div>
+        <div class="g3">
+          <div class="fld"><label>Date</label><input id="qs-date" type="date"/></div>
+          <div class="fld"><label>Time</label><input id="qs-time" type="time"/></div>
+          <div class="fld"><label>Mode</label>
+            <select id="qs-mode" onchange="onQsModeChange()">
+              <option value="">— Select —</option>
+              <option>Video Call</option><option>Phone Call</option><option>In-Person</option><option>Walk-in</option><option>Panel</option>
+            </select>
+          </div>
+        </div>
+        <div id="qs-link-box" style="display:none;margin-top:8px">
+          <div class="fld"><label>Meeting Link <span style="color:#475569;font-size:10px">(Optional)</span></label>
+            <input id="qs-link" placeholder="MS Teams / Zoom / Google Meet link..."/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interviewer -->
+      <div id="qs-interviewer-box" style="display:none">
+        <div style="font-size:10px;font-weight:700;color:#4ADE80;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px" id="qs-int-lbl">👤 Interviewer Details</div>
+        <div class="g2">
+          <div class="fld"><label>Interviewer Name</label><input id="qs-intname" placeholder="Name of person"/></div>
+          <div class="fld"><label>Role <span style="color:#475569;font-size:10px">(Optional)</span></label><input id="qs-introle" placeholder="e.g. Tech Lead"/></div>
+        </div>
+      </div>
+
+      <!-- Feedback -->
+      <div id="qs-feedback-box" style="display:none">
+        <div style="font-size:10px;font-weight:700;color:#F87171;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">💬 Rejection Feedback <span style="color:#475569;font-weight:500;text-transform:none">(Optional)</span></div>
+        <div class="fld"><textarea id="qs-feedback" rows="3" placeholder="e.g. Looking for more experience..."></textarea></div>
+      </div>
+
+      <!-- Remarks -->
+      <div id="qs-remarks-box" style="display:none">
+        <div class="fld"><label>Remarks</label><input id="qs-remarks" placeholder="Brief note..."/></div>
+      </div>
+
+      <button onclick="saveQsStatus()" style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#1D4ED8,#1E40AF);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">⚡ Update Status</button>
+    </div>
+  </div>
+</div>
+
 <!-- POST-INTERVIEW POPUP -->
 <div id="post-iv-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9998;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(8px)">
   <div style="background:#1E293B;border:1px solid #334155;border-radius:20px;width:min(480px,96vw);max-height:90vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,0.8)">
@@ -956,7 +1048,7 @@ function renderCards(f){
         <div class="jcard-co">${x(j.company)||"—"}</div>
         <div class="jcard-role">${x(j.role)||"—"}</div>
         <div class="jcard-meta">
-          <span class="sbadge" style="background:${st.bg};color:${st.color}"><span class="dot" style="background:${st.dot}"></span>${j.status}</span>
+          <span class="sbadge" style="background:${st.bg};color:${st.color};cursor:pointer;border:1px solid ${st.dot}44" onclick="event.stopPropagation();openQsPopup('${j.id}')"><span class="dot" style="background:${st.dot}"></span>${j.status} <span style=\"font-size:9px;opacity:0.5\">▾</span></span>
           ${j.salaryOffering?`<span class="jcard-pill" style="background:#052E16;color:#4ADE80">💰 ${x(j.salaryOffering)}</span>`:""}
           ${j.location?`<span class="jcard-pill" style="background:#1E293B;color:#94A3B8">📍 ${x(j.location)}</span>`:""}
           ${j.appliedVia?`<span class="jcard-pill" style="background:#1E293B;color:#7DD3FC">🔗 ${x(j.appliedVia==="Self"?(j.himselfHow||"Self"):j.appliedVia==="Social Media"?(j.socialPlatform||"Social Media"):(j.appliedVia||""))}</span>`:""}
@@ -1129,7 +1221,7 @@ function stCell(j){
   const st=ST[j.status]||ST["Applied"];
   const sub=j.subStatus?"<span style='font-size:9px;opacity:0.7;margin-left:4px'>· "+x(j.subStatus)+"</span>":"";
   if(j.status!=="Interview" || j.subStatus!=="Interview Scheduled")
-    return `<span class="sbadge" style="background:${st.bg};color:${st.color}"><span class="dot" style="background:${st.dot}"></span>${j.status}${sub}</span>`;
+    return `<span class="sbadge" style="background:${st.bg};color:${st.color};cursor:pointer;border:1px solid ${st.dot}44" onclick="event.stopPropagation();openQsPopup('${j.id}')"><span class="dot" style="background:${st.dot}"></span>${j.status}${sub} <span style="font-size:9px;opacity:0.5">▾</span></span>`;
   const cd=j.scheduleDate?Math.ceil((new Date(j.scheduleDate)-new Date())/(864e5)):null;
   const no=notifMap[j.id]||false;
   return `<div style="position:relative;display:inline-block" onmouseenter="showTT('tt${j.id}')" onmouseleave="hideTT('tt${j.id}')">
@@ -1991,6 +2083,179 @@ function getEmbed(url){
   if(url.includes("drive.google.com")&&url.includes("id=")){const m=url.match(/id=([a-zA-Z0-9_-]+)/);if(m)return `https://drive.google.com/file/d/${m[1]}/preview`;}
   return url;
 }
+// ── QUICK STATUS UPDATE ──────────────────────────────────────────────
+let _qsJobId = null;
+
+window.openQsPopup=(id)=>{
+  const j=jobs.find(x=>x.id===id); if(!j) return;
+  _qsJobId = id;
+
+  // Set title
+  document.getElementById("qs-title").textContent = "⚡ Quick Status Update";
+  document.getElementById("qs-sub").textContent = `${j.company} — ${j.role}`;
+
+  // Set current status
+  const stSel = document.getElementById("qs-st");
+  stSel.value = j.status;
+
+  // Reset all boxes
+  ["qs-sub-box","qs-hr-box","qs-schedule-box","qs-interviewer-box","qs-feedback-box","qs-remarks-box","qs-link-box"].forEach(id=>{
+    document.getElementById(id).style.display="none";
+  });
+  ["qs-hrn","qs-hrp","qs-hrm","qs-date","qs-time","qs-link","qs-intname","qs-introle","qs-feedback","qs-remarks"].forEach(id=>{
+    const e=document.getElementById(id); if(e) e.value="";
+  });
+  document.getElementById("qs-mode").value="";
+  document.getElementById("qs-sub-st").value="";
+
+  // Pre-fill existing HR details if available
+  if(j.hrName) document.getElementById("qs-hrn").value=j.hrName;
+  if(j.hrPhone) document.getElementById("qs-hrp").value=j.hrPhone;
+  if(j.hrEmail) document.getElementById("qs-hrm").value=j.hrEmail;
+
+  // Disable Applied option if job has progressed
+  const pastStatuses=["Under Process","Screening","Interview","Further Process","Offered","Rejected"];
+  Array.from(stSel.options).forEach(o=>{
+    o.disabled = pastStatuses.includes(j.status) && o.value==="Applied";
+  });
+
+  onQsStChange();
+  document.getElementById("qs-popup").style.display="flex";
+};
+
+window.closeQsPopup=()=>{
+  document.getElementById("qs-popup").style.display="none";
+  _qsJobId=null;
+};
+
+window.onQsStChange=()=>{
+  const s=document.getElementById("qs-st").value;
+  const j=jobs.find(x=>x.id===_qsJobId);
+  const hasSub=["Screening","Interview","Further Process"].includes(s);
+
+  // Sub-status
+  const subBox=document.getElementById("qs-sub-box");
+  const subSel=document.getElementById("qs-sub-st");
+  if(hasSub){
+    subBox.style.display="block";
+    document.getElementById("qs-sub-lbl").textContent=s==="Screening"?"Screening Stage":s==="Interview"?"Interview Stage":"Round";
+    subSel.innerHTML='<option value="">— Select —</option>'+(SUB_ST[s]||[]).map(o=>`<option>${o}</option>`).join("");
+    subSel.value="";
+  } else {
+    subBox.style.display="none";
+  }
+
+  // HR Details — show if moving to Under Process+ and HR not yet filled
+  const hrStatuses=["Under Process","Screening","Interview","Further Process","Offered"];
+  const hrNeeded = hrStatuses.includes(s) && j && j.himselfHow!=="HR" && !j.hrName;
+  document.getElementById("qs-hr-box").style.display = hrNeeded?"block":"none";
+
+  // Feedback
+  document.getElementById("qs-feedback-box").style.display = s==="Rejected"?"block":"none";
+  // Remarks (show for all non-rejected)
+  document.getElementById("qs-remarks-box").style.display = s!=="Rejected"?"block":"none";
+  // Hide schedule/interviewer — handled by sub-status
+  document.getElementById("qs-schedule-box").style.display="none";
+  document.getElementById("qs-interviewer-box").style.display="none";
+};
+
+window.onQsSubStChange=()=>{
+  const sub=document.getElementById("qs-sub-st").value;
+  const scheduleStages=["Screening Scheduled","Interview Scheduled"];
+  const doneStages=["Screening Done","Interviewed","Technical Round 1","Technical Round 2","Manager Round","HR Round"];
+  const schedBox=document.getElementById("qs-schedule-box");
+  const intBox=document.getElementById("qs-interviewer-box");
+  if(scheduleStages.includes(sub)){
+    schedBox.style.display="block";
+    intBox.style.display="none";
+    document.getElementById("qs-sched-lbl").textContent=sub==="Screening Scheduled"?"🗓️ Screening Schedule":"🗓️ Interview Schedule";
+  } else if(doneStages.includes(sub)){
+    schedBox.style.display="none";
+    intBox.style.display="block";
+    document.getElementById("qs-int-lbl").textContent=sub==="Screening Done"?"👤 Screened By":"👤 Interviewer Details";
+  } else {
+    schedBox.style.display="none";
+    intBox.style.display="none";
+  }
+};
+
+window.onQsModeChange=()=>{
+  const m=document.getElementById("qs-mode").value;
+  document.getElementById("qs-link-box").style.display=m==="Video Call"?"block":"none";
+};
+
+window.saveQsStatus=async()=>{
+  const j=jobs.find(x=>x.id===_qsJobId); if(!j) return;
+  const newSt  = document.getElementById("qs-st").value;
+  const newSub = document.getElementById("qs-sub-st").value;
+  const hrn    = document.getElementById("qs-hrn").value.trim();
+  const hrp    = document.getElementById("qs-hrp").value.trim();
+  const hrm    = document.getElementById("qs-hrm").value.trim();
+  const date   = document.getElementById("qs-date").value;
+  const time   = document.getElementById("qs-time").value;
+  const mode   = document.getElementById("qs-mode").value;
+  const link   = document.getElementById("qs-link").value.trim();
+  const intName= document.getElementById("qs-intname").value.trim();
+  const intRole= document.getElementById("qs-introle").value.trim();
+  const feedback=document.getElementById("qs-feedback").value.trim();
+  const remarks= document.getElementById("qs-remarks").value.trim();
+
+  // Validate HR if box is visible
+  const hrBox=document.getElementById("qs-hr-box");
+  if(hrBox.style.display==="block"){
+    if(!hrn) return toast("Kindly enter the HR Name.","error");
+    if(!hrp&&!hrm) return toast("Kindly enter HR Phone or Email.","error");
+  }
+
+  // Validate schedule if visible
+  const schedBox=document.getElementById("qs-schedule-box");
+  if(schedBox.style.display==="block"){
+    if(!date||!time) return toast("Kindly enter Schedule Date and Time.","error");
+  }
+
+  // Build history entry
+  const histEntry={
+    status:newSt, subStatus:newSub, date:new Date().toISOString(),
+    scheduleDate:date, scheduleTime:time, scheduleMode:mode, meetingLink:link,
+    interviewerName:intName, interviewerRole:intRole,
+  };
+
+  const updated = {
+    ...j,
+    status:newSt,
+    subStatus:newSub,
+    scheduleDate:date||j.scheduleDate,
+    scheduleTime:time||j.scheduleTime,
+    scheduleMode:mode||j.scheduleMode,
+    meetingLink:link||j.meetingLink,
+    interviewerName:intName||j.interviewerName,
+    interviewerRole:intRole||j.interviewerRole,
+    hrName:hrn||j.hrName,
+    hrPhone:hrp||j.hrPhone,
+    hrEmail:hrm||j.hrEmail,
+    feedback:feedback||j.feedback,
+    remarks:remarks||j.remarks,
+    history:[...(j.history||[]),histEntry],
+  };
+
+  // Clear schedule if moving away from scheduled stage
+  const schedStages=["Screening Scheduled","Interview Scheduled"];
+  if(!schedStages.includes(newSub)){
+    updated.scheduleDate=""; updated.scheduleTime=""; updated.scheduleMode=""; updated.meetingLink="";
+  }
+
+  try{
+    await updateJob(j.id, updated);
+    // Schedule notification if interview scheduled
+    if(["Interview Scheduled","Screening Scheduled"].includes(newSub) && date && time){
+      scheduleSmartNotif(updated, j.id);
+      schedulePostIvCheck(updated);
+    }
+    closeQsPopup();
+    toast(`✅ ${j.company} status updated to ${newSt}!`);
+  }catch(e){ toast("Error: "+e.message,"error"); }
+};
+
 window.toast=(msg,type="success")=>{const e=document.getElementById("toast");e.style.background=type==="error"?"#7F1D1D":type==="info"?"#1E3A5F":"#14532D";e.textContent=(type==="error"?"⚠️ ":type==="info"?"ℹ️ ":"✅ ")+msg;e.classList.add("on");setTimeout(()=>e.classList.remove("on"),3000);};
 window.togglePmenu=()=>document.getElementById("pmenu").classList.toggle("on");
 function closePmenu(){document.getElementById("pmenu").classList.remove("on");}
