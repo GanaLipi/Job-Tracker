@@ -1168,8 +1168,9 @@ function getTableCols(filterStatus, jobsList){
   cols.push({h:"Actions", g:"", w:"100px",
     fn:(j)=>{
       const qs=(j.interviewQuestions||"").split("\n").filter(Boolean);
-      const qBtn=qs.length?'<span style="font-size:11px;color:#C084FC;font-weight:600;background:#2D1B4E;padding:2px 8px;border-radius:20px;cursor:pointer;white-space:nowrap" onclick="openView(\"'+j.id+'\")">📋 '+qs.length+'</span>':'';
-      return '<td><div style="display:flex;align-items:center;gap:4px">'+qBtn+'<button onclick="openEdit(\"'+j.id+'\")" style="padding:4px 7px;border-radius:6px;border:1px solid #334155;background:#0F172A;color:#94A3B8;font-size:11px;cursor:pointer">✏️</button><button onclick="confirmDel(\"'+j.id+'\")" style="padding:4px 7px;border-radius:6px;border:1px solid #3F1515;background:#1C0A0A;color:#F87171;font-size:11px;cursor:pointer">🗑️</button></div></td>';
+      const id=j.id;
+      const qBtn=qs.length?`<span style="font-size:11px;color:#C084FC;font-weight:600;background:#2D1B4E;padding:2px 8px;border-radius:20px;cursor:pointer;white-space:nowrap" onclick="openView('${id}')">📋 ${qs.length}</span>`:"";
+      return `<td><div style="display:flex;align-items:center;gap:4px">${qBtn}<button onclick="openEdit('${id}')" style="padding:4px 7px;border-radius:6px;border:1px solid #334155;background:#0F172A;color:#94A3B8;font-size:11px;cursor:pointer">✏️</button><button onclick="confirmDel('${id}')" style="padding:4px 7px;border-radius:6px;border:1px solid #3F1515;background:#1C0A0A;color:#F87171;font-size:11px;cursor:pointer">🗑️</button></div></td>`;
     }});
 
   return cols;
@@ -1999,34 +2000,34 @@ window.saveJob=async(andClose=false)=>{
   // Validate Social Media job link
   const linkBox=document.getElementById("fav-link-box");
   if(linkBox && linkBox.style.display==="block"){
-    if(!d.appliedViaLink.trim()) return toast("Kindly enter the Job Posting Link before saving.","error");
+    if(!d.appliedViaLink.trim()) { _isSaving=false; document.querySelectorAll(".btn-save").forEach((b,i)=>{b.disabled=false;b.style.opacity="1";b.textContent=i===0?"✅ Save":"✅ OK";}); return toast("Kindly enter the Job Posting Link before saving.","error"); }
   }
 
   // Validate Career Portal link
   const cpBox=document.getElementById("fav-cp-box");
   if(cpBox && cpBox.style.display==="block"){
-    if(!d.careerPortalLink.trim()) return toast("Kindly enter the Career Portal Link before saving.","error");
+    if(!d.careerPortalLink.trim()) { _isSaving=false; document.querySelectorAll(".btn-save").forEach((b,i)=>{b.disabled=false;b.style.opacity="1";b.textContent=i===0?"✅ Save":"✅ OK";}); return toast("Kindly enter the Career Portal Link before saving.","error"); }
   }
 
   // Validate Applied Via → Self → HR fields
   const hrViaBox=document.getElementById("fav-hr-box");
   if(hrViaBox && hrViaBox.style.display==="block"){
-    if(!d.appliedHrName.trim()) return toast("Kindly enter the HR Name in the Applied Via section.","error");
-    if(!d.appliedHrPhone.trim() && !d.appliedHrEmail.trim()) return toast("Kindly enter at least one contact for HR — Phone or Email — in Applied Via.","error");
+    if(!d.appliedHrName.trim()) { _isSaving=false; document.querySelectorAll(".btn-save").forEach((b,i)=>{b.disabled=false;b.style.opacity="1";b.textContent=i===0?"✅ Save":"✅ OK";}); return toast("Kindly enter the HR Name in the Applied Via section.","error"); }
+    if(!d.appliedHrPhone.trim() && !d.appliedHrEmail.trim()) { _isSaving=false; document.querySelectorAll(".btn-save").forEach((b,i)=>{b.disabled=false;b.style.opacity="1";b.textContent=i===0?"✅ Save":"✅ OK";}); return toast("Kindly enter at least one contact for HR — Phone or Email — in Applied Via.","error"); }
   }
 
   // Validate Applied Via → Self → Referral fields
   const refBox=document.getElementById("fav-ref-box");
   if(refBox && refBox.style.display==="block"){
-    if(!d.refName.trim()) return toast("Kindly enter the Referral Name in the Applied Via section.","error");
-    if(!d.refPhone.trim() && !d.refEmail.trim()) return toast("Kindly enter at least one contact for the Referral — Phone or Email.","error");
+    if(!d.refName.trim()) { _isSaving=false; document.querySelectorAll(".btn-save").forEach((b,i)=>{b.disabled=false;b.style.opacity="1";b.textContent=i===0?"✅ Save":"✅ OK";}); return toast("Kindly enter the Referral Name in the Applied Via section.","error"); }
+    if(!d.refPhone.trim() && !d.refEmail.trim()) { _isSaving=false; document.querySelectorAll(".btn-save").forEach((b,i)=>{b.disabled=false;b.style.opacity="1";b.textContent=i===0?"✅ Save":"✅ OK";}); return toast("Kindly enter at least one contact for the Referral — Phone or Email.","error"); }
   }
 
   // Validate HR Details box (Under Process+)
   const hrBox=document.getElementById("hr-details-box");
   if(hrBox && hrBox.style.display==="block"){
-    if(!d.hrName.trim()) return toast("Kindly enter the HR Name in the HR Details section.","error");
-    if(!d.hrPhone.trim() && !d.hrEmail.trim()) return toast("Kindly enter at least one contact for HR — Phone or Email — in HR Details.","error");
+    if(!d.hrName.trim()) { _isSaving=false; document.querySelectorAll(".btn-save").forEach((b,i)=>{b.disabled=false;b.style.opacity="1";b.textContent=i===0?"✅ Save":"✅ OK";}); return toast("Kindly enter the HR Name in the HR Details section.","error"); }
+    if(!d.hrPhone.trim() && !d.hrEmail.trim()) { _isSaving=false; document.querySelectorAll(".btn-save").forEach((b,i)=>{b.disabled=false;b.style.opacity="1";b.textContent=i===0?"✅ Save":"✅ OK";}); return toast("Kindly enter at least one contact for HR — Phone or Email — in HR Details.","error"); }
   }
 
   try{
