@@ -1027,24 +1027,32 @@ function getTableCols(filterStatus){
       return `<td style="font-size:11px;font-family:'DM Mono',monospace;color:#C4B5FD">${ph?`<div>${x(ph)}</div>`:""}${em?`<div style="font-size:10px">${x(em)}</div>`:""}</td>`;
     }});
 
-  // ── HR Details (show only when Under Process+, hide for Self→HR) ──
-  // Self→HR: their contact is already in Applied Via Details
-  // All others: show HR Details only when status is Under Process and above
-  cols.push({h:"HR Name", g:"HR Details", w:"120px",
-    fn:(j)=>{
-      // Hide for Self→HR (already in Applied Via Details) or Applied status
-      if(j.himselfHow==="HR" || !hrStatuses.includes(j.status))
-        return `<td style="color:#1E293B;font-size:11px;text-align:center;border-color:#0F172A">—</td>`;
-      return `<td style="color:#4ADE80;font-size:11px;font-weight:600">${x(j.hrName)||"—"}</td>`;
-    }});
-  cols.push({h:"HR Contact", g:"HR Details", w:"150px",
-    fn:(j)=>{
-      if(j.himselfHow==="HR" || !hrStatuses.includes(j.status))
-        return `<td style="color:#1E293B;font-size:11px;text-align:center;border-color:#0F172A">—</td>`;
-      const ph=j.hrPhone||"";
-      const em=j.hrEmail||"";
-      return `<td style="font-size:11px;font-family:'DM Mono',monospace;color:#4ADE80">${ph?`<div>${x(ph)}</div>`:""}${em?`<div style="font-size:10px;color:#34D399">${x(em)}</div>`:""}${!ph&&!em?"—":""}</td>`;
-    }});
+  // ── HR Details — only add columns if filter status needs them ──
+  // Never show for Self→HR (contact already in Applied Via Details)
+  // Never show for Applied status
+  // Only show for Under Process and above
+  const showHRCols = filterStatus !== "Applied" &&
+                     filterStatus !== "All" ? hrStatuses.includes(filterStatus) :
+                     filterStatus === "All" ? true : false;
+
+  // For "All" filter — only add HR cols if at least one job in view is Under Process+
+  // We'll always add them for non-Applied filters and conditionally for All
+  if(filterStatus !== "Applied"){
+    cols.push({h:"HR Name", g:"HR Details", w:"120px",
+      fn:(j)=>{
+        if(j.himselfHow==="HR" || !hrStatuses.includes(j.status))
+          return `<td></td>`;
+        return `<td style="color:#4ADE80;font-size:11px;font-weight:600">${x(j.hrName)||"—"}</td>`;
+      }});
+    cols.push({h:"HR Contact", g:"HR Details", w:"150px",
+      fn:(j)=>{
+        if(j.himselfHow==="HR" || !hrStatuses.includes(j.status))
+          return `<td></td>`;
+        const ph=j.hrPhone||"";
+        const em=j.hrEmail||"";
+        return `<td style="font-size:11px;font-family:'DM Mono',monospace;color:#4ADE80">${ph?`<div>${x(ph)}</div>`:""}${em?`<div style="font-size:10px;color:#34D399">${x(em)}</div>`:""}${!ph&&!em?"—":""}</td>`;
+      }});
+  }
 
   // ── Activity ─────────────────────────────────────────────────
   cols.push({h:"Contacted", g:"Activity", w:"100px", center:true,
