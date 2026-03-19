@@ -1037,14 +1037,16 @@ function getTableCols(filterStatus){
     cols.push({h:"HR Name", g:"HR Details", w:"120px",
       fn:(j)=>{
         if(j.himselfHow==="HR") return `<td></td>`;
-        return `<td style="color:#4ADE80;font-size:11px;font-weight:600">${x(j.hrName)||"—"}</td>`;
+        if(!j.hrName) return `<td style="text-align:center"><span style="font-size:10px;color:#F59E0B;cursor:pointer" onclick="openEdit('${j.id}')" title="Click to add HR details">⚠️ Add</span></td>`;
+        return `<td style="color:#4ADE80;font-size:11px;font-weight:600">${x(j.hrName)}</td>`;
       }});
     cols.push({h:"HR Contact", g:"HR Details", w:"150px",
       fn:(j)=>{
         if(j.himselfHow==="HR") return `<td></td>`;
         const ph=j.hrPhone||"";
         const em=j.hrEmail||"";
-        return `<td style="font-size:11px;font-family:'DM Mono',monospace;color:#4ADE80">${ph?`<div>${x(ph)}</div>`:""}${em?`<div style="font-size:10px;color:#34D399">${x(em)}</div>`:""}${!ph&&!em?"—":""}</td>`;
+        if(!ph&&!em) return `<td style="text-align:center"><span style="font-size:10px;color:#475569">—</span></td>`;
+        return `<td style="font-size:11px;font-family:'DM Mono',monospace;color:#4ADE80">${ph?`<div>${x(ph)}</div>`:""}${em?`<div style="font-size:10px;color:#34D399">${x(em)}</div>`:""}</td>`;
       }});
   }
 
