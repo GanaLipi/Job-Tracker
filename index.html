@@ -2032,6 +2032,7 @@ function renderFormBlocks(j){
     const isDone      = ["Screening Done","Interviewed"].includes(b.subStatus);
     const isFP        = ["Technical Round 1","Technical Round 2","Manager Round","HR Round"].includes(b.subStatus);
     const isHR        = !b.subStatus && b.hrName;
+    const isOffered   = b.salaryOffered;
     const isFeedback  = b.feedback;
 
     let blockHtml = "";
@@ -2075,6 +2076,15 @@ function renderFormBlocks(j){
             <div class="fld"><label>Interviewer Name</label><input value="${x(b.interviewerName)}" readonly style="opacity:0.7;cursor:default"/></div>
             <div class="fld"><label>Interviewer Role</label><input value="${x(b.interviewerRole)}" readonly style="opacity:0.7;cursor:default"/></div>
           </div>
+        </div>`;
+    }
+
+    // Offered block
+    if(isOffered){
+      blockHtml = `
+        <div class="sbox" style="border-color:#34D39933;background:#022C2299;margin-bottom:10px">
+          <div class="slbl" style="color:#34D399">🎉 Offer Details</div>
+          <div class="fld"><label>Salary Offered</label><input value="${x(b.salaryOffered)}" readonly style="opacity:0.7;cursor:default"/></div>
         </div>`;
     }
 
