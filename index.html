@@ -2074,15 +2074,15 @@ function renderStageBlocks(j){
 
 // Render saved blocks inside the FORM as visual cards (like schedule/interviewer boxes)
 function renderFormBlocks(j){
-  // Show all block arrays in chronological order
+  // Show all block arrays in fixed status sequence order (not by date)
   const blocks = [
-    ...(j.underProcessBlocks||[]).map(b=>({...b,_status:"Under Process"})),
-    ...(j.screeningBlocks||[]).map(b=>({...b,_status:"Screening"})),
-    ...(j.interviewBlocks||[]).map(b=>({...b,_status:"Interview"})),
-    ...(j.furtherProcessBlocks||[]).map(b=>({...b,_status:"Further Process"})),
-    ...(j.offeredBlocks||[]).map(b=>({...b,_status:"Offered"})),
-    ...(j.rejectedBlocks||[]).map(b=>({...b,_status:"Rejected"})),
-  ].sort((a,b)=>new Date(a.date)-new Date(b.date));
+    ...(j.underProcessBlocks||[]).map(b=>({...b,_status:"Under Process",_seq:0})),
+    ...(j.screeningBlocks||[]).map((b,i)=>({...b,_status:"Screening",_seq:1+i*0.1})),
+    ...(j.interviewBlocks||[]).map((b,i)=>({...b,_status:"Interview",_seq:2+i*0.1})),
+    ...(j.furtherProcessBlocks||[]).map((b,i)=>({...b,_status:"Further Process",_seq:3+i*0.1})),
+    ...(j.offeredBlocks||[]).map(b=>({...b,_status:"Offered",_seq:4})),
+    ...(j.rejectedBlocks||[]).map(b=>({...b,_status:"Rejected",_seq:5})),
+  ].sort((a,b)=>a._seq-b._seq);
   const container = document.getElementById("form-blocks-container");
   if(!container) return;
   if(!blocks.length){ container.innerHTML=""; return; }
