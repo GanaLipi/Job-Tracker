@@ -1975,9 +1975,20 @@ function restrictStatusDropdown(elId, currentStatus){
   sel.value = currentStatus;
 }
 
+let _isSaving = false;
 window.saveJob=async(andClose=false)=>{
+  if(_isSaving) return;
+  _isSaving = true;
+  // Disable save buttons visually
+  document.querySelectorAll(".btn-save").forEach(b=>{b.disabled=true;b.style.opacity="0.5";b.textContent="⏳ Saving...";});
   let d=gf();
-  if(!d.company||!d.role) return toast("Company & Role required!","error");
+  if(!d.company||!d.role){
+    _isSaving=false;
+    document.querySelectorAll(".btn-save").forEach(b=>{b.disabled=false;b.style.opacity="1";});
+    document.querySelectorAll(".btn-save")[0].textContent="✅ Save";
+    document.querySelectorAll(".btn-save")[1].textContent="✅ OK";
+    return toast("Company & Role required!","error");
+  }
 
   // Get previous job for block preservation
   const prevJob = editId ? jobs.find(j=>j.id===editId) : null;
@@ -2032,7 +2043,15 @@ window.saveJob=async(andClose=false)=>{
         renderFormBlocks(updated);
       }, 500);
     }
-  }catch(e){toast("Error: "+e.message,"error");}
+  }catch(e){
+    toast("Error: "+e.message,"error");
+  } finally {
+    _isSaving = false;
+    document.querySelectorAll(".btn-save").forEach((b,i)=>{
+      b.disabled=false; b.style.opacity="1";
+      b.textContent = i===0?"✅ Save":"✅ OK";
+    });
+  }
 };
 
 // VIEW
