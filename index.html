@@ -2032,7 +2032,7 @@ function renderStageBlocks(j){
 
 // Render saved blocks inside the FORM as visual cards (like schedule/interviewer boxes)
 function renderFormBlocks(j){
-  // Show all block arrays in order (all stages recorded so far)
+  // Show all block arrays in chronological order
   const blocks = [
     ...(j.underProcessBlocks||[]).map(b=>({...b,_status:"Under Process"})),
     ...(j.screeningBlocks||[]).map(b=>({...b,_status:"Screening"})),
@@ -2040,7 +2040,7 @@ function renderFormBlocks(j){
     ...(j.furtherProcessBlocks||[]).map(b=>({...b,_status:"Further Process"})),
     ...(j.offeredBlocks||[]).map(b=>({...b,_status:"Offered"})),
     ...(j.rejectedBlocks||[]).map(b=>({...b,_status:"Rejected"})),
-  ];
+  ].sort((a,b)=>new Date(a.date)-new Date(b.date));
   const container = document.getElementById("form-blocks-container");
   if(!container) return;
   if(!blocks.length){ container.innerHTML=""; return; }
