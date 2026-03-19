@@ -1032,14 +1032,15 @@ function getTableCols(filterStatus){
   // All others: show HR Details only when status is Under Process and above
   cols.push({h:"HR Name", g:"HR Details", w:"120px",
     fn:(j)=>{
-      if(j.himselfHow==="HR") return `<td style="color:#334155;font-size:11px;text-align:center">—</td>`;
-      if(!hrStatuses.includes(j.status)) return `<td style="color:#334155;font-size:11px;text-align:center">—</td>`;
+      // Hide for Self→HR (already in Applied Via Details) or Applied status
+      if(j.himselfHow==="HR" || !hrStatuses.includes(j.status))
+        return `<td style="color:#1E293B;font-size:11px;text-align:center;border-color:#0F172A">—</td>`;
       return `<td style="color:#4ADE80;font-size:11px;font-weight:600">${x(j.hrName)||"—"}</td>`;
     }});
   cols.push({h:"HR Contact", g:"HR Details", w:"150px",
     fn:(j)=>{
-      if(j.himselfHow==="HR") return `<td style="color:#334155;font-size:11px;text-align:center">—</td>`;
-      if(!hrStatuses.includes(j.status)) return `<td style="color:#334155;font-size:11px;text-align:center">—</td>`;
+      if(j.himselfHow==="HR" || !hrStatuses.includes(j.status))
+        return `<td style="color:#1E293B;font-size:11px;text-align:center;border-color:#0F172A">—</td>`;
       const ph=j.hrPhone||"";
       const em=j.hrEmail||"";
       return `<td style="font-size:11px;font-family:'DM Mono',monospace;color:#4ADE80">${ph?`<div>${x(ph)}</div>`:""}${em?`<div style="font-size:10px;color:#34D399">${x(em)}</div>`:""}${!ph&&!em?"—":""}</td>`;
@@ -1430,6 +1431,10 @@ window.onHimselfChange=()=>{
   document.getElementById("fav-ref-box").style.display = v==="Referral"?"block":"none";
   document.getElementById("fav-cp-box").style.display  = v==="Career Portal"?"block":"none";
   document.getElementById("fav-hr-box").style.display  = v==="HR"?"block":"none";
+  // Clear fields of sections that are now hidden
+  if(v!=="Referral") ["frefn","frefp","frefm","frefl"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  if(v!=="Career Portal") {const e=document.getElementById("fcpl");if(e)e.value="";}
+  if(v!=="HR") ["favhrn","favhrp","favhrm"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
   updateHrVisibility();
 };
 
