@@ -1912,7 +1912,7 @@ function restrictStatusDropdown(elId, currentStatus){
 }
 
 window.saveJob=async()=>{
-  const d=gf();
+  let d=gf();
   if(!d.company||!d.role) return toast("Company & Role required!","error");
 
   // Get previous job for block preservation
@@ -1977,10 +1977,13 @@ function renderStageBlocks(j){
 
   const schedBlock=(b,status,icon,color)=>{
     const st=ST[status]||ST["Applied"];
+    // Only show if there's actual data beyond just the status label
+    const hasData = b.scheduleDate||b.interviewerName||b.meetingLink;
+    if(!hasData) return "";
     return `
       <div style="position:relative;margin-bottom:14px;padding-left:14px">
         <div style="position:absolute;left:-5px;top:4px;width:10px;height:10px;border-radius:50%;background:${st.dot};border:2px solid #0F172A"></div>
-        <div style="font-size:12px;font-weight:700;color:${st.color}">${icon} ${status}${b.subStatus?" · "+b.subStatus:""} ${fmtUpd(b.date)}</div>
+        <div style="font-size:12px;font-weight:700;color:${st.color}">${icon} ${status}${b.subStatus?" · "+b.subStatus:""} ${fmtUpd(b.updatedAt||b.date)}</div>
         ${b.scheduleDate?`<div style="font-size:11px;color:#60A5FA;margin-top:3px">📅 ${b.scheduleDate}${b.scheduleTime?" · "+fmt12(b.scheduleTime):""}${b.scheduleMode?" · "+b.scheduleMode:""}</div>`:""}
         ${b.meetingLink?`<div style="font-size:11px;color:#38BDF8;margin-top:2px">🔗 <a href="${b.meetingLink}" target="_blank" style="color:#38BDF8">${b.meetingLink.length>45?b.meetingLink.slice(0,45)+"...":b.meetingLink}</a></div>`:""}
         ${b.interviewerName?`<div style="font-size:11px;color:#4ADE80;margin-top:3px">👤 ${x(b.interviewerName)}${b.interviewerRole?" ("+x(b.interviewerRole)+")":""}</div>`:""}
