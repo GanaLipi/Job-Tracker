@@ -1027,27 +1027,21 @@ function getTableCols(filterStatus){
       return `<td style="font-size:11px;font-family:'DM Mono',monospace;color:#C4B5FD">${ph?`<div>${x(ph)}</div>`:""}${em?`<div style="font-size:10px">${x(em)}</div>`:""}</td>`;
     }});
 
-  // ── HR Details — only add columns if filter status needs them ──
-  // Never show for Self→HR (contact already in Applied Via Details)
-  // Never show for Applied status
-  // Only show for Under Process and above
-  const showHRCols = filterStatus !== "Applied" &&
-                     filterStatus !== "All" ? hrStatuses.includes(filterStatus) :
-                     filterStatus === "All" ? true : false;
+  // ── HR Details — only add columns when filter is Under Process or above ──
+  // Rule: show HR cols ONLY if filterStatus is explicitly one of the hrStatuses
+  // Never for "Applied" filter, never for "All" filter (too mixed)
+  // For "All" — check if ANY visible job has hrStatus AND is not Self→HR
+  const needsHRCols = hrStatuses.includes(filterStatus);
 
-  // For "All" filter — only add HR cols if at least one job in view is Under Process+
-  // We'll always add them for non-Applied filters and conditionally for All
-  if(filterStatus !== "Applied"){
+  if(needsHRCols){
     cols.push({h:"HR Name", g:"HR Details", w:"120px",
       fn:(j)=>{
-        if(j.himselfHow==="HR" || !hrStatuses.includes(j.status))
-          return `<td></td>`;
+        if(j.himselfHow==="HR") return `<td></td>`;
         return `<td style="color:#4ADE80;font-size:11px;font-weight:600">${x(j.hrName)||"—"}</td>`;
       }});
     cols.push({h:"HR Contact", g:"HR Details", w:"150px",
       fn:(j)=>{
-        if(j.himselfHow==="HR" || !hrStatuses.includes(j.status))
-          return `<td></td>`;
+        if(j.himselfHow==="HR") return `<td></td>`;
         const ph=j.hrPhone||"";
         const em=j.hrEmail||"";
         return `<td style="font-size:11px;font-family:'DM Mono',monospace;color:#4ADE80">${ph?`<div>${x(ph)}</div>`:""}${em?`<div style="font-size:10px;color:#34D399">${x(em)}</div>`:""}${!ph&&!em?"—":""}</td>`;
