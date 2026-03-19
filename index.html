@@ -977,9 +977,9 @@ function renderCards(f){
 }
 
 // Column definitions per status filter
-function getTableCols(filterStatus){
-  console.log("getTableCols called with:", filterStatus);
+function getTableCols(filterStatus, jobsList){
   const cols = [];
+  const jl = jobsList || jobs;
   // Status levels where HR is relevant
   const hrStatuses = ["Under Process","Screening","Interview","Further Process","Offered","Rejected"];
 
@@ -1032,8 +1032,9 @@ function getTableCols(filterStatus){
   // Rule: show HR cols ONLY if filterStatus is explicitly one of the hrStatuses
   // Never for "Applied" filter, never for "All" filter (too mixed)
   // For "All" — check if ANY visible job has hrStatus AND is not Self→HR
-  const needsHRCols = hrStatuses.includes(filterStatus);
-  console.log("needsHRCols:", needsHRCols, "filterStatus:", filterStatus);
+  // Show HR cols if filter is an HR-relevant status OR if "All" and any job needs it
+  const needsHRCols = hrStatuses.includes(filterStatus) ||
+    (filterStatus==="All" && jl.some(j=>hrStatuses.includes(j.status) && j.himselfHow!=="HR"));
 
   if(needsHRCols){
     cols.push({h:"HR Name", g:"HR Details", w:"120px",
@@ -1081,7 +1082,7 @@ function getTableCols(filterStatus){
 }
 
 function renderTable(f){
-  const cols = getTableCols(filterSt);
+  const cols = getTableCols(filterSt, f);
 
   // ── Group header row ─────────────────────────────────────────
   // Merge consecutive cols with same group label
