@@ -994,25 +994,37 @@ function getTableCols(filterStatus){
   cols.push({h:"Salary", g:"Job Details", w:"100px", center:true,
     fn:(j)=>`<td style="text-align:center;color:#4ADE80;font-weight:700;font-size:12px">${x(j.salaryOffering)||"—"}</td>`});
 
-  // ── Applied Via ──────────────────────────────────────────────
-  cols.push({h:"Source", g:"Applied Via", w:"120px",
+  // ── Applied Via Details ──────────────────────────────────────
+  // Via/Source + Contact Name + Contact — adapts per row based on himselfHow
+  cols.push({h:"Via / Source", g:"Applied Via Details", w:"120px",
     fn:(j)=>{
-      // Show clean label: if Self → show how (Referral/Career Portal/HR), if Social Media → show platform
       const label = j.appliedVia==="Self" ? (j.himselfHow||"Self") :
                     j.appliedVia==="Social Media" ? (j.socialPlatform||"Social Media") :
-                    (j.appliedVia||"");
+                    (j.appliedVia||"—");
       const link = j.appliedViaLink||j.careerPortalLink||"";
-      return `<td style="font-size:11px;color:#94A3B8">${label?`<div style="font-weight:600;color:#BAE6FD">${x(label)}</div>`:""}${link?`<div style="margin-top:2px"><a href="${x(link)}" target="_blank" style="color:#38BDF8;font-size:10px">🔗 Link</a></div>`:""}${!label?"—":""}</td>`;
+      return `<td style="font-size:11px">`+
+        `<div style="font-weight:600;color:#C4B5FD">${x(label)}</div>`+
+        (link?`<div style="margin-top:2px"><a href="${x(link)}" target="_blank" style="color:#38BDF8;font-size:10px">🔗 Link</a></div>`:"")
+        +`</td>`;
     }});
-
-  // ── Referral Details (show when Applied Via = Referral) ─────
-  cols.push({h:"Referral Name", g:"Referral Details", w:"120px",
-    fn:(j)=>`<td style="color:#C4B5FD;font-size:11px">${j.himselfHow==="Referral"&&j.refName?x(j.refName):"—"}</td>`});
-  cols.push({h:"Referral Contact", g:"Referral Details", w:"140px",
+  cols.push({h:"Contact Name", g:"Applied Via Details", w:"130px",
     fn:(j)=>{
-      if(j.himselfHow!=="Referral") return `<td style="color:#475569;font-size:11px">—</td>`;
-      const ph=j.refPhone||""; const em=j.refEmail||"";
-      return `<td style="font-size:11px;font-family:'DM Mono',monospace;color:#C4B5FD">${ph?`<div>${x(ph)}</div>`:""}${em?`<div style="font-size:10px">${x(em)}</div>`:""}${!ph&&!em?"—":""}</td>`;
+      // Referral → refName, HR → appliedHrName, others → —
+      const name = j.himselfHow==="Referral" ? j.refName :
+                   j.himselfHow==="HR"        ? j.appliedHrName : "";
+      const type = j.himselfHow==="Referral" ? "👥" :
+                   j.himselfHow==="HR"        ? "👤" : "";
+      return `<td style="color:#C4B5FD;font-size:11px">${name?`${type} ${x(name)}`:"—"}</td>`;
+    }});
+  cols.push({h:"Contact", g:"Applied Via Details", w:"150px",
+    fn:(j)=>{
+      // Referral → ref phone/email, HR → appliedHr phone/email
+      const ph = j.himselfHow==="Referral" ? (j.refPhone||"") :
+                 j.himselfHow==="HR"        ? (j.appliedHrPhone||"") : "";
+      const em = j.himselfHow==="Referral" ? (j.refEmail||"") :
+                 j.himselfHow==="HR"        ? (j.appliedHrEmail||"") : "";
+      if(!ph&&!em) return `<td style="color:#475569;font-size:11px;text-align:center">—</td>`;
+      return `<td style="font-size:11px;font-family:'DM Mono',monospace;color:#C4B5FD">${ph?`<div>${x(ph)}</div>`:""}${em?`<div style="font-size:10px">${x(em)}</div>`:""}</td>`;
     }});
 
   // ── HR Details (always show columns, populate only when Under Process+) ──
@@ -1074,8 +1086,7 @@ function renderTable(f){
 
   const groupColors = {
     "Job Details":       {bg:"#1A2744",color:"#93C5FD"},
-    "Applied Via":       {bg:"#1A1A2E",color:"#C4B5FD"},
-    "Referral Details":  {bg:"#2D1B4E",color:"#E9D5FF"},
+    "Applied Via Details": {bg:"#2D1B4E",color:"#E9D5FF"},
     "HR Details":        {bg:"#052E16",color:"#4ADE80"},
     "Activity":          {bg:"#2D1B00",color:"#FCD34D"},
     "":                  {bg:"#161F2E",color:"#475569"},
