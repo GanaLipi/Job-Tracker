@@ -1849,8 +1849,8 @@ function _resetActiveInputs(){
   ["fintname","fintrole"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
   document.getElementById("interviewer-box").style.display="none";
 
-  // Hide and clear HR details box (it's now saved as a block)
-  ["fhrn","fhrp","fhrm"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  // Keep HR fields populated (they stay as read-only block)
+  // Only hide the HR Details box if it was shown as an input
   document.getElementById("hr-details-box").style.display="none";
 
   // Hide and clear feedback box
@@ -1878,6 +1878,10 @@ function buildStageBlocks(d, prevJob){
   switch(d.status){
     case "Under Process":
       newEntry = { ...newEntry, hrName:d.hrName||"", hrPhone:d.hrPhone||"", hrEmail:d.hrEmail||"" };
+      // Also keep HR directly on job for backward compat + table display
+      d.hrName  = d.hrName||"";
+      d.hrPhone = d.hrPhone||"";
+      d.hrEmail = d.hrEmail||"";
       break;
     case "Screening":
     case "Interview":
@@ -1939,11 +1943,12 @@ function buildStageBlocks(d, prevJob){
 
 // Get HR data from underProcessBlocks or direct fields (backward compat)
 function getHR(j){
+  // Read directly from job fields first, then fall back to underProcessBlocks
   const b = j.underProcessBlocks&&j.underProcessBlocks.length ? j.underProcessBlocks[j.underProcessBlocks.length-1] : null;
   return {
-    name:  b?.hrName  || j.hrName  || "",
-    phone: b?.hrPhone || j.hrPhone || "",
-    email: b?.hrEmail || j.hrEmail || "",
+    name:  j.hrName  || b?.hrName  || "",
+    phone: j.hrPhone || b?.hrPhone || "",
+    email: j.hrEmail || b?.hrEmail || "",
   };
 }
 
@@ -2003,7 +2008,6 @@ window.saveJob=async(andClose=false)=>{
 
   // Build stage blocks
   d = buildStageBlocks(d, prevJob);
-  console.log("SAVE DEBUG - status:", d.status, "hrName:", d.hrName, "underProcessBlocks:", JSON.stringify(d.underProcessBlocks));
 
   // Validate Social Media job link
   const linkBox=document.getElementById("fav-link-box");
