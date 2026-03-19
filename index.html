@@ -1308,15 +1308,27 @@ let _postIvJobId = null;
 
 // On app load — reschedule notifications for all pending interviews
 function rescheduleAllNotifs(){
+  const now = Date.now();
   jobs.forEach(j=>{
     const isScheduled = j.scheduleDate && j.scheduleTime &&
       (j.subStatus==="Interview Scheduled"||j.subStatus==="Screening Scheduled"||
        ["Technical Round 1","Technical Round 2","Manager Round","HR Round"].includes(j.subStatus));
-    if(isScheduled){
-      const dt=new Date(`${j.scheduleDate}T${j.scheduleTime}`);
-      if(dt.getTime()>Date.now()){
-        scheduleSmartNotif(j, j.id);
-      }
+    if(!isScheduled) return;
+
+    const dt = new Date(`${j.scheduleDate}T${j.scheduleTime}`);
+    const dtMs = dt.getTime();
+    const msToInterview = dtMs - now;
+    const msAfter1hr    = dtMs + 60*60*1000 - now;
+
+    if(msToInterview > 0){
+      // Interview is in the future — schedule pre-interview notification
+      scheduleSmartNotif(j, j.id);
+    } else if(msAfter1hr > 0){
+      // Interview has passed but 1hr check hasn't fired yet — schedule post-interview popup
+      schedulePostIvCheck(j);
+    } else if(msAfter1hr <= 0 && msAfter1hr > -2*60*60*1000){
+      // Within 2 hours after interview — show popup after short delay (let UI load first)
+      setTimeout(()=>showPostIvPopup(j), 2000);
     }
   });
 }
@@ -1329,12 +1341,18 @@ function schedulePostIvCheck(j){
   if(msAfter1hr > 0){
     _postIvTimers[j.id] = setTimeout(()=>showPostIvPopup(j), msAfter1hr);
   } else if(msAfter1hr > -2*60*60*1000){
-    // Within 2 hours after — show immediately if app is open
-    showPostIvPopup(j);
+    // Within 2 hours after — show immediately
+    setTimeout(()=>showPostIvPopup(j), 1000);
   }
 }
 
 function showPostIvPopup(j){
+  // Re-fetch latest job data from jobs array in case it was updated
+  const latest = jobs.find(x=>x.id===j.id)||j;
+  // Don't show if already marked as done
+  const doneStages=["Screening Done","Interviewed","Technical Round 1","Technical Round 2","Manager Round","HR Round"];
+  if(doneStages.includes(latest.subStatus)) return;
+  j = latest;
   _postIvJobId = j.id;
   const labels = {
     "Screening Scheduled":"Screening","Interview Scheduled":"Interview",
