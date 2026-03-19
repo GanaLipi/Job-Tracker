@@ -1027,17 +1027,21 @@ function getTableCols(filterStatus){
       return `<td style="font-size:11px;font-family:'DM Mono',monospace;color:#C4B5FD">${ph?`<div>${x(ph)}</div>`:""}${em?`<div style="font-size:10px">${x(em)}</div>`:""}</td>`;
     }});
 
-  // ── HR Details (always show columns, populate only when Under Process+) ──
+  // ── HR Details (show only when Under Process+, hide for Self→HR) ──
+  // Self→HR: their contact is already in Applied Via Details
+  // All others: show HR Details only when status is Under Process and above
   cols.push({h:"HR Name", g:"HR Details", w:"120px",
     fn:(j)=>{
+      if(j.himselfHow==="HR") return `<td style="color:#334155;font-size:11px;text-align:center">—</td>`;
       if(!hrStatuses.includes(j.status)) return `<td style="color:#334155;font-size:11px;text-align:center">—</td>`;
-      return `<td style="color:#4ADE80;font-size:11px;font-weight:600">${x(j.appliedHrName||j.hrName)||"—"}</td>`;
+      return `<td style="color:#4ADE80;font-size:11px;font-weight:600">${x(j.hrName)||"—"}</td>`;
     }});
   cols.push({h:"HR Contact", g:"HR Details", w:"150px",
     fn:(j)=>{
+      if(j.himselfHow==="HR") return `<td style="color:#334155;font-size:11px;text-align:center">—</td>`;
       if(!hrStatuses.includes(j.status)) return `<td style="color:#334155;font-size:11px;text-align:center">—</td>`;
-      const ph=j.appliedHrPhone||j.hrPhone||"";
-      const em=j.appliedHrEmail||j.hrEmail||"";
+      const ph=j.hrPhone||"";
+      const em=j.hrEmail||"";
       return `<td style="font-size:11px;font-family:'DM Mono',monospace;color:#4ADE80">${ph?`<div>${x(ph)}</div>`:""}${em?`<div style="font-size:10px;color:#34D399">${x(em)}</div>`:""}${!ph&&!em?"—":""}</td>`;
     }});
 
