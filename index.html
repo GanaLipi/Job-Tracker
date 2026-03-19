@@ -662,9 +662,11 @@ html,body{height:100%;background:#0F172A;color:#E2E8F0;font-family:'DM Sans','Se
         </div>
       </div>
     </div>
+    <div id="form-blocks-container" style="padding:0 20px 4px"></div>
     <div class="mfoot">
       <button class="btn-cancel" onclick="closeForm()">Cancel</button>
-      <button class="btn-save" onclick="saveJob()">✅ Save</button>
+      <button class="btn-save" onclick="saveJob(false)">✅ Save</button>
+      <button class="btn-save" style="background:linear-gradient(135deg,#059669,#047857)" onclick="saveJob(true)">✅ OK</button>
     </div>
   </div>
 </div>
@@ -1486,20 +1488,22 @@ function fillForm(j){
   // Call onStChange FIRST to populate sub-status options
   onStChange();onResChange();
 
-  // NOW restore block values AFTER onStChange (which resets sub-status dropdown)
-  const block = j.screeningBlock||j.interviewBlock||j.furtherProcessBlock||null;
-  const blockSub = block?.subStatus||j.subStatus||"";
-  const blockDate = block?.scheduleDate||j.scheduleDate||"";
-  const blockTime = block?.scheduleTime||j.scheduleTime||"";
-  const blockMode = block?.scheduleMode||j.scheduleMode||"";
-  const blockLink = block?.meetingLink||j.meetingLink||"";
-  const blockIntName = block?.interviewerName||j.interviewerName||"";
-  const blockIntRole = block?.interviewerRole||j.interviewerRole||"";
+  // Get latest block for current status
+  const currBlocks = (j[statusToKey(j.status)]||[]);
+  const lastBlock = currBlocks[currBlocks.length-1]||null;
 
-  s("fsub", blockSub);
-  s("fid",  blockDate);
-  s("fit",  blockTime);
-  s("fim",  blockMode);
+  const blockSub     = lastBlock?.subStatus||j.subStatus||"";
+  const blockDate    = lastBlock?.scheduleDate||j.scheduleDate||"";
+  const blockTime    = lastBlock?.scheduleTime||j.scheduleTime||"";
+  const blockMode    = lastBlock?.scheduleMode||j.scheduleMode||"";
+  const blockLink    = lastBlock?.meetingLink||j.meetingLink||"";
+  const blockIntName = lastBlock?.interviewerName||j.interviewerName||"";
+  const blockIntRole = lastBlock?.interviewerRole||j.interviewerRole||"";
+
+  s("fsub",     blockSub);
+  s("fid",      blockDate);
+  s("fit",      blockTime);
+  s("fim",      blockMode);
   s("fmlink",   blockLink);
   s("fintname", blockIntName);
   s("fintrole", blockIntRole);
@@ -1507,17 +1511,25 @@ function fillForm(j){
   // Trigger sub-status change to show schedule/interviewer boxes
   onSubStChange();
 
-  // Read HR from underProcessBlock if available
-  if(j.underProcessBlock){
-    s("fhrn",j.underProcessBlock.hrName||j.hrName||"");
-    s("fhrp",j.underProcessBlock.hrPhone||j.hrPhone||"");
-    s("fhrm",j.underProcessBlock.hrEmail||j.hrEmail||"");
+  // Read HR from latest underProcessBlocks entry
+  const upBlocks = j.underProcessBlocks||[];
+  const upLast = upBlocks[upBlocks.length-1]||null;
+  if(upLast){
+    s("fhrn", upLast.hrName||j.hrName||"");
+    s("fhrp", upLast.hrPhone||j.hrPhone||"");
+    s("fhrm", upLast.hrEmail||j.hrEmail||"");
   }
-  // Read feedback from rejectedBlock if available
-  if(j.rejectedBlock){ s("ffb",j.rejectedBlock.feedback||j.feedback||""); }
+
+  // Read feedback from latest rejectedBlocks entry
+  const rjBlocks = j.rejectedBlocks||[];
+  const rjLast = rjBlocks[rjBlocks.length-1]||null;
+  if(rjLast){ s("ffb", rjLast.feedback||j.feedback||""); }
 
   // Show meeting link if Video Call
   document.getElementById("meeting-link-box").style.display=blockMode==="Video Call"?"block":"none";
+
+  // Render existing blocks in form
+  renderFormBlocks(j);
 }
 function gf(){
   const g=id=>(document.getElementById(id)||{}).value||"";
@@ -1816,80 +1828,71 @@ window.onResChange=()=>document.getElementById("res-box").style.display=document
 // Preserves existing blocks from previous job state
 function buildStageBlocks(d, prevJob){
   const now = new Date().toISOString();
-  // Preserve all existing blocks from prevJob
-  if(prevJob){
-    ["underProcessBlock","screeningBlock","interviewBlock",
-     "furtherProcessBlock","offeredBlock","rejectedBlock"].forEach(k=>{
-      if(prevJob[k] && !d[k]) d[k] = prevJob[k];
-    });
-  }
 
-  // Update/create block for current status
+  // Preserve ALL existing block arrays from prevJob
+  const arrKeys = ["underProcessBlocks","screeningBlocks","interviewBlocks",
+                   "furtherProcessBlocks","offeredBlocks","rejectedBlocks"];
+  arrKeys.forEach(k=>{ d[k] = prevJob?.[k] ? [...prevJob[k]] : []; });
+
+  // Build new entry for current status+subStatus
+  const newEntry = {
+    subStatus:       d.subStatus||"",
+    scheduleDate:    d.scheduleDate||"",
+    scheduleTime:    d.scheduleTime||"",
+    scheduleMode:    d.scheduleMode||"",
+    meetingLink:     d.meetingLink||"",
+    interviewerName: d.interviewerName||"",
+    interviewerRole: d.interviewerRole||"",
+    hrName:          d.hrName||"",
+    hrPhone:         d.hrPhone||"",
+    hrEmail:         d.hrEmail||"",
+    feedback:        d.feedback||"",
+    salaryOffered:   d.salaryOffering||"",
+    date:            now,
+  };
+
+  // Append to the right array — only if subStatus changed or new entry
+  const prevBlocks = prevJob ? (prevJob[statusToKey(d.status)]||[]) : [];
+  const lastBlock = prevBlocks[prevBlocks.length-1];
+  const isNewEntry = !lastBlock || lastBlock.subStatus !== d.subStatus ||
+    lastBlock.scheduleDate !== d.scheduleDate || lastBlock.interviewerName !== d.interviewerName;
+
   switch(d.status){
     case "Under Process":
-      d.underProcessBlock = {
-        hrName:     d.hrName||"",
-        hrPhone:    d.hrPhone||"",
-        hrEmail:    d.hrEmail||"",
-        date:       (prevJob?.underProcessBlock?.date)||now,
-        updatedAt:  now,
-      };
+      if(isNewEntry) d.underProcessBlocks.push(newEntry);
+      else d.underProcessBlocks[d.underProcessBlocks.length-1] = {...lastBlock,...newEntry};
       break;
     case "Screening":
-      d.screeningBlock = {
-        subStatus:       d.subStatus||"",
-        scheduleDate:    d.scheduleDate||"",
-        scheduleTime:    d.scheduleTime||"",
-        scheduleMode:    d.scheduleMode||"",
-        meetingLink:     d.meetingLink||"",
-        interviewerName: d.interviewerName||"",
-        interviewerRole: d.interviewerRole||"",
-        date:            (prevJob?.screeningBlock?.date)||now,
-        updatedAt:       now,
-      };
+      if(isNewEntry) d.screeningBlocks.push(newEntry);
+      else d.screeningBlocks[d.screeningBlocks.length-1] = {...lastBlock,...newEntry};
       break;
     case "Interview":
-      d.interviewBlock = {
-        subStatus:       d.subStatus||"",
-        scheduleDate:    d.scheduleDate||"",
-        scheduleTime:    d.scheduleTime||"",
-        scheduleMode:    d.scheduleMode||"",
-        meetingLink:     d.meetingLink||"",
-        interviewerName: d.interviewerName||"",
-        interviewerRole: d.interviewerRole||"",
-        date:            (prevJob?.interviewBlock?.date)||now,
-        updatedAt:       now,
-      };
+      if(isNewEntry) d.interviewBlocks.push(newEntry);
+      else d.interviewBlocks[d.interviewBlocks.length-1] = {...lastBlock,...newEntry};
       break;
     case "Further Process":
-      d.furtherProcessBlock = {
-        subStatus:       d.subStatus||"",
-        scheduleDate:    d.scheduleDate||"",
-        scheduleTime:    d.scheduleTime||"",
-        scheduleMode:    d.scheduleMode||"",
-        meetingLink:     d.meetingLink||"",
-        interviewerName: d.interviewerName||"",
-        interviewerRole: d.interviewerRole||"",
-        date:            (prevJob?.furtherProcessBlock?.date)||now,
-        updatedAt:       now,
-      };
+      if(isNewEntry) d.furtherProcessBlocks.push(newEntry);
+      else d.furtherProcessBlocks[d.furtherProcessBlocks.length-1] = {...lastBlock,...newEntry};
       break;
     case "Offered":
-      d.offeredBlock = {
-        salaryOffered: d.salaryOffering||"",
-        date:          (prevJob?.offeredBlock?.date)||now,
-        updatedAt:     now,
-      };
+      if(isNewEntry) d.offeredBlocks.push(newEntry);
+      else d.offeredBlocks[d.offeredBlocks.length-1] = {...lastBlock,...newEntry};
       break;
     case "Rejected":
-      d.rejectedBlock = {
-        feedback:  d.feedback||"",
-        date:      (prevJob?.rejectedBlock?.date)||now,
-        updatedAt: now,
-      };
+      if(isNewEntry) d.rejectedBlocks.push(newEntry);
+      else d.rejectedBlocks[d.rejectedBlocks.length-1] = {...lastBlock,...newEntry};
       break;
   }
   return d;
+}
+
+function statusToKey(status){
+  const map = {
+    "Under Process":"underProcessBlocks","Screening":"screeningBlocks",
+    "Interview":"interviewBlocks","Further Process":"furtherProcessBlocks",
+    "Offered":"offeredBlocks","Rejected":"rejectedBlocks"
+  };
+  return map[status]||"";
 }
 
 // Valid next statuses per current status
@@ -1919,7 +1922,7 @@ function restrictStatusDropdown(elId, currentStatus){
   sel.value = currentStatus;
 }
 
-window.saveJob=async()=>{
+window.saveJob=async(andClose=false)=>{
   let d=gf();
   if(!d.company||!d.role) return toast("Company & Role required!","error");
 
@@ -1962,74 +1965,78 @@ window.saveJob=async()=>{
     if(!d.hrPhone.trim() && !d.hrEmail.trim()) return toast("Kindly enter at least one contact for HR — Phone or Email — in HR Details.","error");
   }
 
-  try{editId?await updateJob(editId,d):await addJob(d);closeForm();toast(editId?"✅ Updated!":"🎉 Application added!");}catch(e){toast("Error: "+e.message,"error");}
+  try{editId?await updateJob(editId,d):await addJob(d);if(andClose)closeForm();else renderFormBlocks({...d,id:editId||""});toast(editId?"✅ Updated!":"🎉 Application added!");}catch(e){toast("Error: "+e.message,"error");}
 };
 
 // VIEW
-function renderStageBlocks(j){
-  const stIcon={"Applied":"📝","Under Process":"⚙️","Screening":"🔍","Interview":"🎯","Further Process":"🔄","Offered":"🎉","Rejected":"❌"};
-  const blocks = [];
-
+// Render a single block entry for timeline
+function renderBlockEntry(b, status, icon){
+  const st = ST[status]||ST["Applied"];
   const fmtDate=d=>d?new Date(d).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}):"";
-  const fmtUpd=d=>d?`<span style="font-size:10px;color:#334155;margin-left:6px">${fmtDate(d)}</span>`:"";
+  const dateStr = b.date?`<span style="font-size:10px;color:#475569;margin-left:6px">${fmtDate(b.date)}</span>`:"";
+  return `<div style="position:relative;margin-bottom:12px;padding-left:14px">
+    <div style="position:absolute;left:-5px;top:4px;width:10px;height:10px;border-radius:50%;background:${st.dot};border:2px solid #0F172A"></div>
+    <div style="font-size:12px;font-weight:700;color:${st.color}">${icon} ${status}${b.subStatus?" · "+x(b.subStatus):""} ${dateStr}</div>
+    ${b.hrName?`<div style="font-size:11px;color:#4ADE80;margin-top:3px">👤 ${x(b.hrName)}${b.hrPhone?" · "+x(b.hrPhone):""}${b.hrEmail?" · "+x(b.hrEmail):""}</div>`:""}
+    ${b.scheduleDate?`<div style="font-size:11px;color:#60A5FA;margin-top:3px">📅 ${b.scheduleDate}${b.scheduleTime?" · "+fmt12(b.scheduleTime):""}${b.scheduleMode?" · "+b.scheduleMode:""}</div>`:""}
+    ${b.meetingLink?`<div style="font-size:11px;color:#38BDF8;margin-top:2px">🔗 <a href="${x(b.meetingLink)}" target="_blank" style="color:#38BDF8">${b.meetingLink.length>45?b.meetingLink.slice(0,45)+"...":b.meetingLink}</a></div>`:""}
+    ${b.interviewerName?`<div style="font-size:11px;color:#4ADE80;margin-top:3px">👤 ${x(b.interviewerName)}${b.interviewerRole?" ("+x(b.interviewerRole)+")":""}</div>`:""}
+    ${b.salaryOffered?`<div style="font-size:11px;color:#34D399;margin-top:3px">💰 ${x(b.salaryOffered)}</div>`:""}
+    ${b.feedback?`<div style="font-size:11px;color:#FCA5A5;margin-top:3px;font-style:italic">${x(b.feedback)}</div>`:""}
+  </div>`;
+}
 
-  if(j.underProcessBlock){
-    const b=j.underProcessBlock, st=ST["Under Process"];
-    blocks.push(`
-      <div style="position:relative;margin-bottom:14px;padding-left:14px">
-        <div style="position:absolute;left:-5px;top:4px;width:10px;height:10px;border-radius:50%;background:${st.dot};border:2px solid #0F172A"></div>
-        <div style="font-size:12px;font-weight:700;color:${st.color}">⚙️ Under Process ${fmtUpd(b.date)}</div>
-        ${b.hrName?`<div style="font-size:11px;color:#4ADE80;margin-top:4px">👤 ${x(b.hrName)}${b.hrPhone?" · "+x(b.hrPhone):""}${b.hrEmail?" · "+x(b.hrEmail):""}</div>`:""}
-      </div>`);
-  }
-
-  const schedBlock=(b,status,icon,color)=>{
-    const st=ST[status]||ST["Applied"];
-    // Only show if there's actual data beyond just the status label
-    const hasData = b.scheduleDate||b.interviewerName||b.meetingLink;
-    if(!hasData) return "";
-    return `
-      <div style="position:relative;margin-bottom:14px;padding-left:14px">
-        <div style="position:absolute;left:-5px;top:4px;width:10px;height:10px;border-radius:50%;background:${st.dot};border:2px solid #0F172A"></div>
-        <div style="font-size:12px;font-weight:700;color:${st.color}">${icon} ${status}${b.subStatus?" · "+b.subStatus:""} ${fmtUpd(b.updatedAt||b.date)}</div>
-        ${b.scheduleDate?`<div style="font-size:11px;color:#60A5FA;margin-top:3px">📅 ${b.scheduleDate}${b.scheduleTime?" · "+fmt12(b.scheduleTime):""}${b.scheduleMode?" · "+b.scheduleMode:""}</div>`:""}
-        ${b.meetingLink?`<div style="font-size:11px;color:#38BDF8;margin-top:2px">🔗 <a href="${b.meetingLink}" target="_blank" style="color:#38BDF8">${b.meetingLink.length>45?b.meetingLink.slice(0,45)+"...":b.meetingLink}</a></div>`:""}
-        ${b.interviewerName?`<div style="font-size:11px;color:#4ADE80;margin-top:3px">👤 ${x(b.interviewerName)}${b.interviewerRole?" ("+x(b.interviewerRole)+")":""}</div>`:""}
-      </div>`;
-  };
-
-  if(j.screeningBlock)     blocks.push(schedBlock(j.screeningBlock,"Screening","🔍","#A78BFA"));
-  if(j.interviewBlock)     blocks.push(schedBlock(j.interviewBlock,"Interview","🎯","#60A5FA"));
-  if(j.furtherProcessBlock)blocks.push(schedBlock(j.furtherProcessBlock,"Further Process","🔄","#C084FC"));
-
-  if(j.offeredBlock){
-    const st=ST["Offered"];
-    blocks.push(`
-      <div style="position:relative;margin-bottom:14px;padding-left:14px">
-        <div style="position:absolute;left:-5px;top:4px;width:10px;height:10px;border-radius:50%;background:${st.dot};border:2px solid #0F172A"></div>
-        <div style="font-size:12px;font-weight:700;color:${st.color}">🎉 Offered ${fmtUpd(j.offeredBlock.date)}</div>
-        ${j.offeredBlock.salaryOffered?`<div style="font-size:11px;color:#34D399;margin-top:3px">💰 ${x(j.offeredBlock.salaryOffered)}</div>`:""}
-      </div>`);
-  }
-
-  if(j.rejectedBlock){
-    const st=ST["Rejected"];
-    blocks.push(`
-      <div style="position:relative;margin-bottom:14px;padding-left:14px">
-        <div style="position:absolute;left:-5px;top:4px;width:10px;height:10px;border-radius:50%;background:${st.dot};border:2px solid #0F172A"></div>
-        <div style="font-size:12px;font-weight:700;color:${st.color}">❌ Rejected ${fmtUpd(j.rejectedBlock.date)}</div>
-        ${j.rejectedBlock.feedback?`<div style="font-size:11px;color:#FCA5A5;margin-top:3px;font-style:italic">${x(j.rejectedBlock.feedback)}</div>`:""}
-      </div>`);
-  }
-
-  if(!blocks.length) return "";
+// Render full application journey timeline (detail view)
+function renderStageBlocks(j){
+  const entries = [];
+  const push=(arr,status,icon)=>{ (arr||[]).forEach(b=>entries.push(renderBlockEntry(b,status,icon))); };
+  push(j.underProcessBlocks,  "Under Process",  "⚙️");
+  push(j.screeningBlocks,     "Screening",      "🔍");
+  push(j.interviewBlocks,     "Interview",      "🎯");
+  push(j.furtherProcessBlocks,"Further Process","🔄");
+  push(j.offeredBlocks,       "Offered",        "🎉");
+  push(j.rejectedBlocks,      "Rejected",       "❌");
+  if(!entries.length) return "";
   return `<div style="margin-top:14px">
     <div style="font-size:10px;font-weight:700;color:#38BDF8;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px">📋 Application Journey</div>
     <div style="position:relative;padding-left:20px">
       <div style="position:absolute;left:7px;top:0;bottom:0;width:2px;background:#1E293B"></div>
-      ${blocks.join("")}
+      ${entries.join("")}
     </div>
   </div>`;
+}
+
+// Render saved blocks inside the FORM (shows all past entries for current status)
+function renderFormBlocks(j){
+  const key = statusToKey(j.status);
+  const blocks = j[key]||[];
+  const container = document.getElementById("form-blocks-container");
+  if(!container) return;
+  if(!blocks.length){ container.innerHTML=""; return; }
+  const stConfig = {
+    "Under Process":  {icon:"⚙️",color:"#FED7AA"},
+    "Screening":      {icon:"🔍",color:"#C4B5FD"},
+    "Interview":      {icon:"🎯",color:"#BFDBFE"},
+    "Further Process":{icon:"🔄",color:"#E9D5FF"},
+    "Offered":        {icon:"🎉",color:"#A7F3D0"},
+    "Rejected":       {icon:"❌",color:"#FECACA"},
+  };
+  const cfg = stConfig[j.status]||{icon:"•",color:"#94A3B8"};
+  const fmtDate=d=>d?new Date(d).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}):"";
+  container.innerHTML = `
+    <div style="margin-bottom:12px">
+      <div style="font-size:10px;font-weight:700;color:#38BDF8;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">📋 Saved Entries</div>
+      ${blocks.map((b,i)=>`
+        <div style="background:#0F172A;border:1px solid #1E293B;border-radius:10px;padding:10px 12px;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:700;color:${cfg.color};margin-bottom:4px">${cfg.icon} Entry ${i+1} · ${fmtDate(b.date)}</div>
+          ${b.subStatus?`<div style="font-size:11px;color:#94A3B8">Stage: ${x(b.subStatus)}</div>`:""}
+          ${b.hrName?`<div style="font-size:11px;color:#4ADE80">👤 ${x(b.hrName)}${b.hrPhone?" · "+x(b.hrPhone):""}${b.hrEmail?" · "+x(b.hrEmail):""}</div>`:""}
+          ${b.scheduleDate?`<div style="font-size:11px;color:#60A5FA">📅 ${b.scheduleDate}${b.scheduleTime?" · "+fmt12(b.scheduleTime):""}${b.scheduleMode?" · "+b.scheduleMode:""}</div>`:""}
+          ${b.meetingLink?`<div style="font-size:11px;color:#38BDF8">🔗 ${b.meetingLink.length>40?b.meetingLink.slice(0,40)+"...":b.meetingLink}</div>`:""}
+          ${b.interviewerName?`<div style="font-size:11px;color:#4ADE80">👤 ${x(b.interviewerName)}${b.interviewerRole?" ("+x(b.interviewerRole)+")":""}</div>`:""}
+          ${b.feedback?`<div style="font-size:11px;color:#FCA5A5;font-style:italic">${x(b.feedback)}</div>`:""}
+        </div>`).join("")}
+    </div>`;
 }
 
 window.openView=id=>{
