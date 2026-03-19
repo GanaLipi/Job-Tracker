@@ -2026,78 +2026,83 @@ function renderFormBlocks(j){
   if(!container) return;
   if(!blocks.length){ container.innerHTML=""; return; }
 
+  const RO = 'readonly style="opacity:0.6;cursor:default;background:#0A1628"';
   container.innerHTML = blocks.map(b=>{
-    // Determine block type from subStatus
-    const isScheduled = ["Screening Scheduled","Interview Scheduled"].includes(b.subStatus);
-    const isDone      = ["Screening Done","Interviewed"].includes(b.subStatus);
-    const isFP        = ["Technical Round 1","Technical Round 2","Manager Round","HR Round"].includes(b.subStatus);
-    const isHR        = !b.subStatus && b.hrName;
-    const isOffered   = b.salaryOffered;
-    const isFeedback  = b.feedback;
+    const sub = b.subStatus||"";
 
-    let blockHtml = "";
-
-    // HR Details block (Under Process)
-    if(isHR){
-      blockHtml = `
-        <div class="sbox" style="border-color:#4ADE8033;background:#052E1699;margin-bottom:10px">
-          <div class="slbl" style="color:#4ADE80">👤 HR Details</div>
-          <div class="g3">
-            <div class="fld"><label>HR Name</label><input value="${x(b.hrName)}" readonly style="opacity:0.7;cursor:default"/></div>
-            <div class="fld"><label>HR Number</label><input value="${x(b.hrPhone)}" readonly style="opacity:0.7;cursor:default"/></div>
-            <div class="fld"><label>HR Email</label><input value="${x(b.hrEmail)}" readonly style="opacity:0.7;cursor:default"/></div>
-          </div>
-        </div>`;
+    // HR Details block (Under Process — no subStatus)
+    if(!sub && b.hrName){
+      return `<div class="sbox" style="border-color:#4ADE8044;background:#052E16;margin-bottom:10px">
+        <div class="slbl" style="color:#4ADE80">👤 HR Details</div>
+        <div class="g3">
+          <div class="fld"><label>HR Name</label><input value="${x(b.hrName)}" ${RO}/></div>
+          <div class="fld"><label>HR Number</label><input value="${x(b.hrPhone)}" ${RO}/></div>
+          <div class="fld"><label>HR Email</label><input value="${x(b.hrEmail)}" ${RO}/></div>
+        </div>
+        <div style="font-size:11px;color:#F59E0B;margin-top:6px">🔒 HR Details are locked once Interview is Scheduled.</div>
+      </div>`;
     }
 
-    // Schedule block (Scheduled stages)
-    if(isScheduled){
-      const lbl = b.subStatus==="Screening Scheduled"?"🗓️ Screening Schedule":"🗓️ Interview Schedule";
-      blockHtml = `
-        <div class="sbox" style="border-color:#60A5FA33;background:#0C1A3F99;margin-bottom:10px">
-          <div class="slbl" style="color:#60A5FA">${lbl}</div>
-          <div class="g3">
-            <div class="fld"><label>Date</label><input value="${b.scheduleDate||""}" readonly style="opacity:0.7;cursor:default"/></div>
-            <div class="fld"><label>Time</label><input value="${b.scheduleTime?fmt12(b.scheduleTime):""}" readonly style="opacity:0.7;cursor:default"/></div>
-            <div class="fld"><label>Mode</label><input value="${x(b.scheduleMode)}" readonly style="opacity:0.7;cursor:default"/></div>
-          </div>
-          ${b.meetingLink?`<div class="fld" style="margin-top:8px"><label>Meeting Link</label><input value="${x(b.meetingLink)}" readonly style="opacity:0.7;cursor:default"/></div>`:""}
-        </div>`;
+    // Schedule block
+    if(["Screening Scheduled","Interview Scheduled"].includes(sub)){
+      const lbl = sub==="Screening Scheduled"?"🗓️ Screening Schedule":"🗓️ Interview Schedule";
+      return `<div class="sbox" style="border-color:#60A5FA44;background:#0C1A3F;margin-bottom:10px">
+        <div class="slbl" style="color:#60A5FA">${lbl}</div>
+        <div class="g3">
+          <div class="fld"><label>Date</label><input value="${b.scheduleDate||""}" ${RO}/></div>
+          <div class="fld"><label>Time</label><input value="${b.scheduleTime?fmt12(b.scheduleTime):""}" ${RO}/></div>
+          <div class="fld"><label>Mode</label><input value="${x(b.scheduleMode)}" ${RO}/></div>
+        </div>
+        ${b.meetingLink?`<div class="fld" style="margin-top:8px"><label>Meeting Link</label><input value="${x(b.meetingLink)}" ${RO}/></div>`:""}
+      </div>`;
     }
 
-    // Interviewer block (Done stages)
-    if(isDone||isFP){
-      const lbl = b.subStatus==="Screening Done"?"👤 Screened By":"👤 Interviewer Details";
-      const title = b.subStatus||"";
-      blockHtml = `
-        <div class="sbox" style="border-color:#4ADE8033;background:#052E1699;margin-bottom:10px">
-          <div class="slbl" style="color:#4ADE80">${lbl}${title?` <span style="font-weight:400;color:#64748B;font-size:10px">· ${title}</span>`:""}</div>
-          <div class="g2">
-            <div class="fld"><label>Interviewer Name</label><input value="${x(b.interviewerName)}" readonly style="opacity:0.7;cursor:default"/></div>
-            <div class="fld"><label>Interviewer Role</label><input value="${x(b.interviewerRole)}" readonly style="opacity:0.7;cursor:default"/></div>
-          </div>
-        </div>`;
+    // Screened By / Interviewer block
+    if(["Screening Done","Interviewed"].includes(sub)){
+      const lbl = sub==="Screening Done"?"👤 Screened By":"👤 Interviewer Details";
+      return `<div class="sbox" style="border-color:#4ADE8044;background:#052E16;margin-bottom:10px">
+        <div class="slbl" style="color:#4ADE80">${lbl} <span style="font-weight:400;color:#64748B;font-size:10px">· ${sub}</span></div>
+        <div class="g2">
+          <div class="fld"><label>Interviewer Name</label><input value="${x(b.interviewerName)}" ${RO}/></div>
+          <div class="fld"><label>Interviewer Role</label><input value="${x(b.interviewerRole)}" ${RO}/></div>
+        </div>
+      </div>`;
+    }
+
+    // Further Process rounds
+    if(["Technical Round 1","Technical Round 2","Manager Round","HR Round"].includes(sub)){
+      return `<div class="sbox" style="border-color:#C084FC44;background:#2E1065;margin-bottom:10px">
+        <div class="slbl" style="color:#C084FC">👤 ${sub}</div>
+        <div class="g3">
+          <div class="fld"><label>Date</label><input value="${b.scheduleDate||""}" ${RO}/></div>
+          <div class="fld"><label>Time</label><input value="${b.scheduleTime?fmt12(b.scheduleTime):""}" ${RO}/></div>
+          <div class="fld"><label>Mode</label><input value="${x(b.scheduleMode)}" ${RO}/></div>
+        </div>
+        <div class="g2" style="margin-top:8px">
+          <div class="fld"><label>Interviewer Name</label><input value="${x(b.interviewerName)}" ${RO}/></div>
+          <div class="fld"><label>Interviewer Role</label><input value="${x(b.interviewerRole)}" ${RO}/></div>
+        </div>
+        ${b.meetingLink?`<div class="fld" style="margin-top:8px"><label>Meeting Link</label><input value="${x(b.meetingLink)}" ${RO}/></div>`:""}
+      </div>`;
     }
 
     // Offered block
-    if(isOffered){
-      blockHtml = `
-        <div class="sbox" style="border-color:#34D39933;background:#022C2299;margin-bottom:10px">
-          <div class="slbl" style="color:#34D399">🎉 Offer Details</div>
-          <div class="fld"><label>Salary Offered</label><input value="${x(b.salaryOffered)}" readonly style="opacity:0.7;cursor:default"/></div>
-        </div>`;
+    if(b.salaryOffered){
+      return `<div class="sbox" style="border-color:#34D39944;background:#022C22;margin-bottom:10px">
+        <div class="slbl" style="color:#34D399">🎉 Offer Details</div>
+        <div class="fld"><label>Salary Offered</label><input value="${x(b.salaryOffered)}" ${RO}/></div>
+      </div>`;
     }
 
-    // Feedback block (Rejected)
-    if(isFeedback){
-      blockHtml = `
-        <div class="sbox" style="border-color:#F8717133;background:#450A0A99;margin-bottom:10px">
-          <div class="slbl" style="color:#F87171">💬 Rejection Feedback</div>
-          <div class="fld"><textarea rows="2" readonly style="opacity:0.7;cursor:default;resize:none">${x(b.feedback)}</textarea></div>
-        </div>`;
+    // Feedback block
+    if(b.feedback){
+      return `<div class="sbox" style="border-color:#F8717144;background:#450A0A;margin-bottom:10px">
+        <div class="slbl" style="color:#F87171">💬 Rejection Feedback</div>
+        <div class="fld"><textarea rows="2" readonly style="opacity:0.6;cursor:default;background:#0A1628;resize:none;width:100%;box-sizing:border-box">${x(b.feedback)}</textarea></div>
+      </div>`;
     }
 
-    return blockHtml;
+    return "";
   }).join("");
 }
 
